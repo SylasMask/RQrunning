@@ -255,33 +255,54 @@
       <div class="card">
         <h2 class="card-title">🔗 心率配速智能联动</h2>
         <p class="card-subtitle">
-          同时输入心率参数和配速参数，查看训练区间的心率-配速对照关系。
+          同时输入心率参数和配速参数，查看训练区间的心率-配速对照关系。基于经验公式自动生成建议配速，帮助你理解不同心率区间应该跑多快。
         </p>
 
         <div class="notice notice-warning">
-          <strong>功能开发中：</strong>此功能将在后续版本中提供心率区间与配速区间的智能映射和联动分析。
-          <br><br>
-          目前请分别使用"心率区间"和"配速课表"标签页独立计算。
+          <strong>💡 使用提示：</strong>
+          请先在"心率区间"和"配速课表"标签页中分别输入你的参数并计算，
+          然后返回此页面查看心率与配速的智能联动分析。
+        </div>
+      </div>
+
+      <!-- 关键训练建议摘要 -->
+      <div class="card" id="combinedSummary" style="display: none;">
+        <!-- 由 JS 动态填充 -->
+      </div>
+
+      <!-- 心率-配速对照表 -->
+      <div class="card" id="combinedResults" style="display: none;">
+        <h3 class="card-title">训练区间对照表</h3>
+        <p class="card-subtitle" style="margin-bottom: 16px;">
+          根据你的心率区间和 10km PB 配速，自动推算各区间的建议配速。置信度表示推荐精度。
         </p>
 
-        <!-- 预留：心率-配速对照表 -->
-        <div id="combinedResults" style="display: none;">
-          <h3 class="card-title">训练区间对照表</h3>
-          <div class="table-wrapper">
-            <table class="table">
-              <thead>
-                <tr>
-                  <th>训练区间</th>
-                  <th>心率范围 (bpm)</th>
-                  <th class="numeric">建议配速</th>
-                  <th>训练目标</th>
-                </tr>
-              </thead>
-              <tbody id="combinedTableBody">
-                <!-- 未来动态填充 -->
-              </tbody>
-            </table>
-          </div>
+        <div class="table-wrapper">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>训练区间</th>
+                <th>心率范围</th>
+                <th class="numeric">建议配速</th>
+                <th>置信度与说明</th>
+              </tr>
+            </thead>
+            <tbody id="combinedTableBody">
+              <!-- 动态填充 -->
+            </tbody>
+          </table>
+        </div>
+
+        <div class="notice">
+          <strong>⚠️ 重要说明：</strong>
+          <br>
+          • 本对照表基于运动生理学经验公式，<strong>仅供参考</strong>，非精确测量结果。
+          <br>
+          • 实际心率受训练水平、环境温度、疲劳状态、情绪等多种因素影响，个体差异较大（±10-20 bpm）。
+          <br>
+          • 建议在实际训练中根据自身感觉微调配速，并使用心率表或手表实时监测。
+          <br>
+          • 置信度"非常高"（⭐⭐⭐⭐⭐）表示该区间的心率-配速对应关系相对稳定，"中等"（⭐⭐⭐）表示个体差异较大。
         </div>
       </div>
     </div>

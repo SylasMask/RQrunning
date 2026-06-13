@@ -16,7 +16,11 @@ const state = {
   // 计算结果
   hrZones: [],
   paceIntervals: [],
-  paceSteady: []
+  paceSteady: [],
+
+  // 联动状态
+  hasHRData: false,
+  hasPaceData: false
 };
 
 // =============================================================================
@@ -42,6 +46,11 @@ function initTabs() {
       btn.classList.add('active');
       btn.setAttribute('aria-selected', 'true');
       document.getElementById(`${targetTab}-panel`).classList.add('active');
+
+      // 如果切换到联动标签页，渲染结果
+      if (targetTab === 'combined') {
+        renderCombinedResults();
+      }
 
       // 更新 URL
       updateURL({ tab: targetTab });
@@ -210,6 +219,7 @@ function initHRCalculator() {
     state.age = age;
     state.maxHR = maxHR;
     state.maxHRFormula = formula;
+    state.hasHRData = true;
 
     // 计算区间
     const zones = calculateHRZones(restHR, maxHR);
@@ -400,6 +410,7 @@ function initPaceCalculator() {
 
     // 更新状态
     state.pbPace = formatPace(pbSeconds);
+    state.hasPaceData = true;
     pbPaceInput.value = state.pbPace;
 
     // 清除错误提示
@@ -428,6 +439,238 @@ function initPaceCalculator() {
     copyCurrentURL();
     showNotice('paceNotice', '✓ 分享链接已复制到剪贴板！', 'success');
   });
+}
+
+// =============================================================================
+// 智能联动功能
+// =============================================================================
+
+// 心率区间 → 配速推荐（基于经验公式）
+function estimatePaceFromHR(pbPaceSeconds, hrZone) {
+  const paceOffsets = {
+    'D': +80,   // 恢复跑：10km PB + 80秒
+    'E': +50,   // 有氧耐力：10km PB + 50秒
+    'M': +25,   // 马拉松配速：10km PB + 25秒
+    'T': +5,    // 乳酸阈值：10km PB + 5秒（接近10km配速）
+    'A': -8,    // 有氧动力：10km PB - 8秒（接近5km配速）
+    'I': -20    // 无氧能力：10km PB - 20秒（短间歇）
+  };
+
+  return pbPaceSeconds + (paceOffsets[hrZone] || 0);
+}
+
+// 配速 → 心率区间推荐
+function estimateHRZoneFromPace(pbPaceSeconds, currentPace) {
+  const delta = currentPace - pbPaceSeconds;
+
+  if (delta >= 60) return 'D';       // 慢很多 → 恢复跑
+  if (delta >= 30) return 'E';       // 慢 30-60秒 → 有氧
+  if (delta >= 15) return 'M';       // 慢 15-30秒 → 马拉松
+  if (delta >= -5) return 'T';       // ±5秒 → 乳酸阈值
+  if (delta >= -15) return 'A';      // 快 5-15秒 → 有氧动力
+  return 'I';                        // 快超过15秒 → 无氧
+}
+
+// 获取置信度（根据训练强度）
+function getConfidenceLevel(zoneCode) {
+  const confidence = {
+    'D': 3, // 中等（恢复跑个体差异较大）
+    'E': 4, // 高（有氧区间较稳定）
+    'M': 4, // 高（马拉松配速有明确对应）
+    'T': 5, // 非常高（乳酸阈值是关键指标）
+    'A': 4, // 高（5km配速参考）
+    'I': 3  // 中等（无氧区间个体差异大）
+  };
+  return confidence[zoneCode] || 3;
+}
+
+// 生成置信度星级
+function getConfidenceStars(level) {
+  return '⭐'.repeat(level);
+}
+
+// 获取训练说明
+function getTrainingNote(zoneCode) {
+  const notes = {
+    'D': '此配速应感觉非常轻松，可边跑边对话，用于恢复和热身。',
+    'E': '此配速应感觉轻松，可持续较长时间，是打基础的核心训练。',
+    'M': '此配速接近全马比赛强度，应感觉稍有吃力但可持续。',
+    'T': '此配速接近10km比赛强度，是提升乳酸阈值的关键训练，应感觉持续但可控的吃力。',
+    'A': '此配速接近5km配速，用于长间歇训练，提升最大摄氧量。',
+    'I': '此配速用于短间歇和速度训练，应全力但可重复多组。'
+  };
+  return notes[zoneCode] || '';
+}
+
+// 生成心率配速对照表
+function generateCombinedTable() {
+  // 检查是否有必要的数据
+  if (!state.hasHRData || !state.hasPaceData) {
+    return null;
+  }
+
+  const pbPaceSeconds = parsePace(state.pbPace);
+  if (!pbPaceSeconds) return null;
+
+  return state.hrZones.map(zone => {
+    const suggestedPaceSeconds = estimatePaceFromHR(pbPaceSeconds, zone.code);
+    const confidence = getConfidenceLevel(zone.code);
+
+    return {
+      zone: zone.code,
+      zoneName: zone.name,
+      hrRange: zone.hrRange,
+      hrPercent: zone.intensity,
+      suggestedPace: formatPace(suggestedPaceSeconds),
+      paceRange: `${formatPace(suggestedPaceSeconds - 5)} - ${formatPace(suggestedPaceSeconds + 5)}`,
+      confidence: confidence,
+      confidenceStars: getConfidenceStars(confidence),
+      note: getTrainingNote(zone.code),
+      rq: zone.rq,
+      energy: zone.energy
+    };
+  });
+}
+
+// 渲染联动结果
+function renderCombinedResults() {
+  const combinedTable = generateCombinedTable();
+
+  if (!combinedTable) {
+    // 显示提示信息
+    const panel = document.getElementById('combined-panel');
+    const notice = panel.querySelector('.notice');
+
+    if (!state.hasHRData && !state.hasPaceData) {
+      notice.innerHTML = `
+        <strong>💡 使用提示：</strong>
+        请先在"心率区间"和"配速课表"标签页中分别输入你的参数并计算，
+        然后返回此页面查看心率与配速的智能联动分析。
+      `;
+      notice.className = 'notice notice-warning';
+    } else if (!state.hasHRData) {
+      notice.innerHTML = `
+        <strong>⚠️ 缺少心率数据：</strong>
+        请先在"心率区间"标签页中计算你的心率区间。
+      `;
+      notice.className = 'notice notice-warning';
+    } else if (!state.hasPaceData) {
+      notice.innerHTML = `
+        <strong>⚠️ 缺少配速数据：</strong>
+        请先在"配速课表"标签页中计算你的配速方案。
+      `;
+      notice.className = 'notice notice-warning';
+    }
+
+    document.getElementById('combinedResults').style.display = 'none';
+    return;
+  }
+
+  // 隐藏提示，显示结果
+  const panel = document.getElementById('combined-panel');
+  panel.querySelector('.notice').style.display = 'none';
+  document.getElementById('combinedResults').style.display = 'block';
+
+  // 渲染表格
+  const tbody = document.getElementById('combinedTableBody');
+  tbody.innerHTML = combinedTable.map(row => `
+    <tr>
+      <td>
+        <span class="badge badge-zone-${row.zone.toLowerCase()}">${row.zone} 区</span>
+        <div style="margin-top: 4px; font-size: 13px; color: var(--muted);">${row.zoneName}</div>
+      </td>
+      <td>
+        <div class="font-mono font-bold">${row.hrRange} bpm</div>
+        <div style="margin-top: 2px; font-size: 12px; color: var(--muted);">${row.hrPercent}</div>
+      </td>
+      <td class="numeric">
+        <div class="font-mono font-bold text-primary" style="font-size: 16px;">${row.suggestedPace}</div>
+        <div style="margin-top: 2px; font-size: 11px; color: var(--muted);">±5秒: ${row.paceRange}</div>
+      </td>
+      <td>
+        <div style="margin-bottom: 4px;">
+          <span style="font-size: 16px;">${row.confidenceStars}</span>
+          <span style="font-size: 12px; color: var(--muted); margin-left: 4px;">
+            ${row.confidence === 5 ? '非常高' : row.confidence === 4 ? '高' : '中等'}
+          </span>
+        </div>
+        <div style="font-size: 12px; color: var(--muted); line-height: 1.5;">
+          ${row.note}
+        </div>
+      </td>
+    </tr>
+  `).join('');
+
+  // 生成统计摘要
+  renderCombinedSummary(combinedTable);
+}
+
+// 渲染联动摘要
+function renderCombinedSummary(combinedTable) {
+  const summaryCard = document.getElementById('combinedSummary');
+  if (!summaryCard) return;
+
+  // 找到关键区间
+  const tZone = combinedTable.find(z => z.zone === 'T');
+  const mZone = combinedTable.find(z => z.zone === 'M');
+  const eZone = combinedTable.find(z => z.zone === 'E');
+
+  summaryCard.innerHTML = `
+    <h3 class="card-title" style="font-size: 18px; margin-bottom: 16px;">💡 关键训练建议</h3>
+
+    <div style="display: grid; gap: 14px;">
+      <div style="padding: 14px; border-radius: 12px; background: var(--panel-soft); border: 1px solid var(--line);">
+        <div style="font-size: 13px; color: var(--muted); margin-bottom: 6px;">🎯 乳酸阈值训练（T区）</div>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <span style="font-size: 12px; color: var(--muted);">心率：</span>
+            <span class="font-mono font-bold" style="font-size: 16px;">${tZone.hrRange} bpm</span>
+          </div>
+          <div>
+            <span style="font-size: 12px; color: var(--muted);">配速：</span>
+            <span class="font-mono font-bold text-primary" style="font-size: 16px;">${tZone.suggestedPace}</span>
+          </div>
+        </div>
+        <div style="margin-top: 8px; font-size: 12px; color: var(--muted); line-height: 1.5;">
+          节奏跑核心训练，持续 20-60 分钟，接近 10km 比赛强度。
+        </div>
+      </div>
+
+      <div style="padding: 14px; border-radius: 12px; background: var(--panel-soft); border: 1px solid var(--line);">
+        <div style="font-size: 13px; color: var(--muted); margin-bottom: 6px;">🏃 马拉松配速（M区）</div>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <span style="font-size: 12px; color: var(--muted);">心率：</span>
+            <span class="font-mono font-bold" style="font-size: 16px;">${mZone.hrRange} bpm</span>
+          </div>
+          <div>
+            <span style="font-size: 12px; color: var(--muted);">配速：</span>
+            <span class="font-mono font-bold text-primary" style="font-size: 16px;">${mZone.suggestedPace}</span>
+          </div>
+        </div>
+        <div style="margin-top: 8px; font-size: 12px; color: var(--muted); line-height: 1.5;">
+          全马比赛配速训练，应感觉稍有吃力但可持续。
+        </div>
+      </div>
+
+      <div style="padding: 14px; border-radius: 12px; background: var(--panel-soft); border: 1px solid var(--line);">
+        <div style="font-size: 13px; color: var(--muted); margin-bottom: 6px;">🌱 轻松跑（E区）</div>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <span style="font-size: 12px; color: var(--muted);">心率：</span>
+            <span class="font-mono font-bold" style="font-size: 16px;">${eZone.hrRange} bpm</span>
+          </div>
+          <div>
+            <span style="font-size: 12px; color: var(--muted);">配速：</span>
+            <span class="font-mono font-bold text-primary" style="font-size: 16px;">${eZone.suggestedPace}</span>
+          </div>
+        </div>
+        <div style="margin-top: 8px; font-size: 12px; color: var(--muted); line-height: 1.5;">
+          打基础的核心训练，应感觉轻松，可持续较长时间。
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 // =============================================================================
