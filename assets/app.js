@@ -70,23 +70,26 @@ const HR_ZONES = [
   }
 ];
 
-// 间歇训练配置（复用）
-const INTERVAL_ROWS = [
-  { type: '短间歇', distance: '400米', delta: -30, rest: '01:30', reps: '10-30组' },
-  { type: '', distance: '800米', delta: -15, rest: '02:30', reps: '6-25组' },
-  { type: '', distance: '1000米', delta: -10, rest: '03:00', reps: '5-15组' },
-  { type: '长间歇', distance: '2000米', delta: -5, rest: '05:00', reps: '3-10组' },
-  { type: '', distance: '3000米', delta: 0, rest: '05:00', reps: '2-9组' },
-  { type: '', distance: '5000米', delta: 10, rest: '08:00', reps: '1-8组' },
-  { type: '重复跑', distance: '＜400米', delta: null, rest: '充分恢复', reps: '10-30组', paceText: '全力冲刺' }
+// 间歇训练配置（重新分组）
+const SHORT_INTERVAL_ROWS = [
+  { distance: '＜400米', delta: null, rest: '充分恢复', reps: '10-30组', paceText: '全力冲刺' },
+  { distance: '400米', delta: -30, rest: '01:30', reps: '10-30组' },
+  { distance: '800米', delta: -15, rest: '02:30', reps: '6-25组' },
+  { distance: '1000米', delta: -10, rest: '03:00', reps: '5-15组' }
 ];
 
-// 匀速跑配置（复用）
+const LONG_INTERVAL_ROWS = [
+  { distance: '2000米', delta: -5, rest: '05:00', reps: '3-10组' },
+  { distance: '3000米', delta: 0, rest: '05:00', reps: '2-9组' },
+  { distance: '5000米', delta: 10, rest: '08:00', reps: '1-8组' }
+];
+
+// 匀速跑配置（增加长距离时长）
 const STEADY_ROWS = [
-  { category: '有氧（上限）', delta: 40, duration: '40-90分钟', race: '5km', raceDelta: -10, raceDistance: 5 },
-  { category: '有氧（下限）', delta: 100, duration: '40-90分钟', race: '10km', raceDelta: 0, raceDistance: 10 },
-  { category: '节奏（上限）', delta: 5, duration: '30-80分钟', race: '半马', raceDelta: 10, raceDistance: 21.0975 },
-  { category: '节奏（下限）', delta: 35, duration: '30-80分钟', race: '全马', raceDelta: 20, raceDistance: 42.195 }
+  { category: '有氧（上限）', delta: 40, duration: '40-90分钟', lsdDuration: '90-150分钟', race: '5km', raceDelta: -10, raceDistance: 5 },
+  { category: '有氧（下限）', delta: 100, duration: '40-90分钟', lsdDuration: '90-150分钟', race: '10km', raceDelta: 0, raceDistance: 10 },
+  { category: '节奏（上限）', delta: 5, duration: '30-80分钟', lsdDuration: '90-150分钟', race: '半马', raceDelta: 10, raceDistance: 21.0975 },
+  { category: '节奏（下限）', delta: 35, duration: '30-80分钟', lsdDuration: '90-150分钟', race: '全马', raceDelta: 20, raceDistance: 42.195 }
 ];
 
 // 配速偏移映射（复用）
@@ -215,7 +218,8 @@ function recompute() {
   renderPacePanel();
 
   // 6. 渲染详细课表
-  renderIntervalTable();
+  renderShortIntervalTable();
+  renderLongIntervalTable();
   renderSteadyTable();
 
   // 7. URL 同步（可选）
@@ -275,10 +279,10 @@ function renderZoneBar() {
   const selected = state.zones.find(z => z.code === state.selectedZone);
   if (selected) {
     document.getElementById('zoneDetail').innerHTML = `
-      <div class="text-lg font-bold text-amber-500 mb-2">${selected.code} 区 - ${selected.name}</div>
-      <div class="text-sm text-slate-300">
-        <strong class="text-slate-200">心率：</strong>${selected.hrRange} bpm（${selected.intensity}）
-        · <strong class="text-slate-200">用途：</strong>${selected.use}
+      <div class="text-lg font-bold mb-2" style="color: var(--sport-green);">${selected.code} 区 - ${selected.name}</div>
+      <div class="text-sm" style="color: var(--text-secondary);">
+        <strong style="color: var(--text-primary);">心率：</strong>${selected.hrRange} bpm（${selected.intensity}）
+        · <strong style="color: var(--text-primary);">用途：</strong>${selected.use}
       </div>
     `;
   }
@@ -297,9 +301,9 @@ function renderRQPanel() {
 
   document.getElementById('rqPanel').innerHTML = `
     <div class="text-center mb-6">
-      <div class="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-2">当前区间 RQ 范围</div>
-      <div class="text-4xl font-bold text-amber-500 mb-2">${selected.rq}</div>
-      <div class="text-lg text-slate-300">${desc}</div>
+      <div class="text-xs uppercase tracking-wider font-semibold mb-2" style="color: var(--text-secondary);">当前区间 RQ 范围</div>
+      <div class="text-4xl font-bold mb-2" style="color: var(--sport-cyan);">${selected.rq}</div>
+      <div class="text-lg" style="color: var(--text-primary);">${desc}</div>
     </div>
 
     <div class="energy-bar mb-4">
@@ -311,19 +315,19 @@ function renderRQPanel() {
       </div>
     </div>
 
-    <div class="flex justify-center gap-6 text-sm text-slate-400 mb-4">
+    <div class="flex justify-center gap-6 text-sm mb-4" style="color: var(--text-secondary);">
       <div class="flex items-center gap-2">
-        <div class="w-3 h-3 rounded-full bg-gradient-to-r from-emerald-500 to-teal-400"></div>
+        <div class="w-3 h-3 rounded-full" style="background: linear-gradient(to right, #00ff88, #00d9a5);"></div>
         <span>脂肪供能 ${energy.fat}%</span>
       </div>
       <div class="flex items-center gap-2">
-        <div class="w-3 h-3 rounded-full bg-gradient-to-r from-orange-400 to-amber-500"></div>
+        <div class="w-3 h-3 rounded-full" style="background: linear-gradient(to right, #ff6b35, #ff9500);"></div>
         <span>糖原供能 ${energy.carb}%</span>
       </div>
     </div>
 
-    <div class="p-4 rounded-xl bg-slate-900/50 border-l-4 border-amber-500 text-sm text-slate-300">
-      <strong class="text-slate-200">科学原理：</strong>${selected.use}。RQ 值越低，脂肪供能占比越高；越高则糖原占比越大。
+    <div class="p-4 rounded-xl border-l-4 text-sm" style="background: var(--bg-card); border-color: var(--sport-cyan); color: var(--text-secondary);">
+      <strong style="color: var(--text-primary);">科学原理：</strong>${selected.use}。RQ 值越低，脂肪供能占比越高；越高则糖原占比越大。
     </div>
   `;
 }
@@ -342,9 +346,9 @@ function renderPacePanel() {
 
   // Hero 区域
   document.getElementById('paceHero').innerHTML = `
-    <div class="text-xs text-amber-400 uppercase tracking-wider font-semibold mb-3">${selected.code} 区 - ${selected.name}</div>
-    <div class="text-5xl font-bold text-amber-500 mb-3">${formatPace(suggestedPace)}</div>
-    <div class="text-base text-slate-300">建议范围：${rangeMin} ~ ${rangeMax}</div>
+    <div class="text-xs uppercase tracking-wider font-semibold mb-3" style="color: var(--sport-green);">${selected.code} 区 - ${selected.name}</div>
+    <div class="text-5xl font-bold mb-3" style="color: var(--sport-green);">${formatPace(suggestedPace)}</div>
+    <div class="text-base" style="color: var(--text-primary);">建议范围：${rangeMin} ~ ${rangeMax}</div>
   `;
 
   // 列表
@@ -353,23 +357,23 @@ function renderPacePanel() {
     const pace = state.pbPaceSeconds + PACE_OFFSETS[zone.code];
     const isActive = zone.code === state.selectedZone;
 
-    // 区间徽章颜色映射
+    // 区间徽章颜色映射 - 高饱和度运动色
     const zoneColors = {
-      'D': 'bg-green-500',
-      'E': 'bg-emerald-500',
-      'M': 'bg-yellow-500',
-      'T': 'bg-orange-500',
-      'A': 'bg-red-400',
-      'I': 'bg-red-600'
+      'D': 'from-green-400 to-emerald-400',
+      'E': 'from-cyan-400 to-blue-400',
+      'M': 'from-yellow-400 to-amber-400',
+      'T': 'from-orange-400 to-orange-500',
+      'A': 'from-orange-500 to-red-500',
+      'I': 'from-red-500 to-red-600'
     };
 
     return `
-      <li class="pace-item ${isActive ? 'active' : ''} flex justify-between items-center px-5 py-4 rounded-xl border border-slate-700 bg-slate-900/30" data-zone="${zone.code}">
+      <li class="pace-item ${isActive ? 'active' : ''} flex justify-between items-center px-5 py-4 rounded-xl" data-zone="${zone.code}">
         <div class="flex items-center gap-3">
-          <span class="w-10 h-10 flex items-center justify-center rounded-lg ${zoneColors[zone.code]} text-white font-bold text-sm">${zone.code}</span>
-          <span class="text-slate-200 font-semibold">${zone.name}</span>
+          <span class="w-10 h-10 flex items-center justify-center rounded-lg bg-gradient-to-br ${zoneColors[zone.code]} text-white font-bold text-sm">${zone.code}</span>
+          <span class="font-semibold" style="color: var(--text-primary);">${zone.name}</span>
         </div>
-        <div class="text-2xl font-bold text-amber-500">${formatPace(pace)}</div>
+        <div class="text-2xl font-bold" style="color: var(--sport-green);">${formatPace(pace)}</div>
       </li>
     `;
   }).join('');
@@ -384,24 +388,40 @@ function renderPacePanel() {
 }
 
 // =============================================================================
-// 渲染 - 详细课表（复用原有函数）
+// 渲染 - 详细课表（拆分为短/长间歇）
 // =============================================================================
 
-function renderIntervalTable() {
-  const tbody = document.getElementById('intervalTableBody');
+function renderShortIntervalTable() {
+  const tbody = document.getElementById('shortIntervalBody');
   const pbSeconds = state.pbPaceSeconds;
 
-  tbody.innerHTML = INTERVAL_ROWS.map(row => {
+  tbody.innerHTML = SHORT_INTERVAL_ROWS.map(row => {
     const pace = row.paceText || formatPace(pbSeconds + row.delta);
-    const typeCell = row.type ? `<span class="px-2 py-1 rounded bg-amber-500/20 text-amber-500 text-xs font-semibold">${row.type}</span>` : '';
 
     return `
       <tr>
-        <td class="px-4 py-3">${typeCell}</td>
-        <td class="px-4 py-3">${row.distance}</td>
-        <td class="px-4 py-3 text-right font-mono font-bold text-amber-500">${pace}</td>
-        <td class="px-4 py-3 text-right font-mono">${row.rest}</td>
-        <td class="px-4 py-3 text-right">${row.reps}</td>
+        <td class="px-4 py-3" data-label="距离">${row.distance}</td>
+        <td class="px-4 py-3 text-right font-mono font-bold" data-label="建议配速" style="color: var(--sport-green);">${pace}</td>
+        <td class="px-4 py-3 text-right font-mono" data-label="间歇时长">${row.rest}</td>
+        <td class="px-4 py-3 text-right" data-label="建议组数">${row.reps}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function renderLongIntervalTable() {
+  const tbody = document.getElementById('longIntervalBody');
+  const pbSeconds = state.pbPaceSeconds;
+
+  tbody.innerHTML = LONG_INTERVAL_ROWS.map(row => {
+    const pace = formatPace(pbSeconds + row.delta);
+
+    return `
+      <tr>
+        <td class="px-4 py-3" data-label="距离">${row.distance}</td>
+        <td class="px-4 py-3 text-right font-mono font-bold" data-label="建议配速" style="color: var(--sport-green);">${pace}</td>
+        <td class="px-4 py-3 text-right font-mono" data-label="间歇时长">${row.rest}</td>
+        <td class="px-4 py-3 text-right" data-label="建议组数">${row.reps}</td>
       </tr>
     `;
   }).join('');
@@ -412,14 +432,15 @@ function renderSteadyTable() {
   const raceBody = document.getElementById('racePredicBody');
   const pbSeconds = state.pbPaceSeconds;
 
-  // 匀速跑训练表
+  // 匀速跑训练表（新增长距离时长列）
   trainingBody.innerHTML = STEADY_ROWS.map(row => {
     const trainingPace = pbSeconds + row.delta;
     return `
       <tr>
-        <td class="px-4 py-3"><span class="px-2 py-1 rounded bg-amber-500/20 text-amber-500 text-xs font-semibold">${row.category}</span></td>
-        <td class="px-4 py-3 text-right font-mono font-bold text-amber-500">${formatPace(trainingPace)}</td>
-        <td class="px-4 py-3">${row.duration}</td>
+        <td class="px-4 py-3" data-label="训练类别"><span class="px-2 py-1 rounded text-xs font-semibold" style="background: rgba(0,255,136,0.2); color: var(--sport-green);">${row.category}</span></td>
+        <td class="px-4 py-3 text-right font-mono font-bold" data-label="建议配速" style="color: var(--sport-green);">${formatPace(trainingPace)}</td>
+        <td class="px-4 py-3" data-label="训练时长">${row.duration}</td>
+        <td class="px-4 py-3" data-label="长距离时长">${row.lsdDuration}</td>
       </tr>
     `;
   }).join('');
@@ -430,9 +451,9 @@ function renderSteadyTable() {
     const predictedSeconds = racePace * row.raceDistance;
     return `
       <tr>
-        <td class="px-4 py-3"><strong class="text-slate-200">${row.race}</strong></td>
-        <td class="px-4 py-3 text-right font-mono font-bold">${formatPace(racePace)}</td>
-        <td class="px-4 py-3 text-right font-mono font-bold text-amber-500">${formatDuration(predictedSeconds)}</td>
+        <td class="px-4 py-3" data-label="比赛项目"><strong style="color: var(--text-primary);">${row.race}</strong></td>
+        <td class="px-4 py-3 text-right font-mono font-bold" data-label="比赛配速">${formatPace(racePace)}</td>
+        <td class="px-4 py-3 text-right font-mono font-bold" data-label="成绩预测" style="color: var(--sport-green);">${formatDuration(predictedSeconds)}</td>
       </tr>
     `;
   }).join('');
@@ -561,5 +582,5 @@ document.addEventListener('DOMContentLoaded', () => {
   loadFromURL();
   initControls();
   recompute();
-  console.log('🏃 Sylas Training Hub - Interactive Widget initialized');
+  console.log('🏃 RQrunning - Interactive Widget initialized');
 });
