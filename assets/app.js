@@ -275,10 +275,10 @@ function renderZoneBar() {
   const selected = state.zones.find(z => z.code === state.selectedZone);
   if (selected) {
     document.getElementById('zoneDetail').innerHTML = `
-      <div class="zone-detail-title">${selected.code} 区 - ${selected.name}</div>
-      <div class="zone-detail-desc">
-        <strong>心率：</strong>${selected.hrRange} bpm（${selected.intensity}）
-        · <strong>用途：</strong>${selected.use}
+      <div class="text-lg font-bold text-amber-500 mb-2">${selected.code} 区 - ${selected.name}</div>
+      <div class="text-sm text-slate-300">
+        <strong class="text-slate-200">心率：</strong>${selected.hrRange} bpm（${selected.intensity}）
+        · <strong class="text-slate-200">用途：</strong>${selected.use}
       </div>
     `;
   }
@@ -296,13 +296,13 @@ function renderRQPanel() {
   const desc = getRQDescription(selected.rq);
 
   document.getElementById('rqPanel').innerHTML = `
-    <div class="rq-hero">
-      <div class="rq-label">当前区间 RQ 范围</div>
-      <div class="rq-value">${selected.rq}</div>
-      <div class="rq-desc">${desc}</div>
+    <div class="text-center mb-6">
+      <div class="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-2">当前区间 RQ 范围</div>
+      <div class="text-4xl font-bold text-amber-500 mb-2">${selected.rq}</div>
+      <div class="text-lg text-slate-300">${desc}</div>
     </div>
 
-    <div class="energy-bar">
+    <div class="energy-bar mb-4">
       <div class="energy-segment fat" style="flex: 0 0 ${energy.fat}%">
         ${energy.fat > 15 ? `脂肪 ${energy.fat}%` : ''}
       </div>
@@ -311,19 +311,19 @@ function renderRQPanel() {
       </div>
     </div>
 
-    <div class="energy-legend">
-      <div class="energy-legend-item">
-        <span class="energy-dot fat"></span>
+    <div class="flex justify-center gap-6 text-sm text-slate-400 mb-4">
+      <div class="flex items-center gap-2">
+        <div class="w-3 h-3 rounded-full bg-gradient-to-r from-emerald-500 to-teal-400"></div>
         <span>脂肪供能 ${energy.fat}%</span>
       </div>
-      <div class="energy-legend-item">
-        <span class="energy-dot carb"></span>
+      <div class="flex items-center gap-2">
+        <div class="w-3 h-3 rounded-full bg-gradient-to-r from-orange-400 to-amber-500"></div>
         <span>糖原供能 ${energy.carb}%</span>
       </div>
     </div>
 
-    <div class="rq-note">
-      <strong>科学原理：</strong>${selected.use}。RQ 值越低，脂肪供能占比越高；越高则糖原占比越大。
+    <div class="p-4 rounded-xl bg-slate-900/50 border-l-4 border-amber-500 text-sm text-slate-300">
+      <strong class="text-slate-200">科学原理：</strong>${selected.use}。RQ 值越低，脂肪供能占比越高；越高则糖原占比越大。
     </div>
   `;
 }
@@ -342,9 +342,9 @@ function renderPacePanel() {
 
   // Hero 区域
   document.getElementById('paceHero').innerHTML = `
-    <div class="pace-hero-label">${selected.code} 区 - ${selected.name}</div>
-    <div class="pace-hero-value">${formatPace(suggestedPace)}</div>
-    <div class="pace-hero-range">建议范围：${rangeMin} ~ ${rangeMax}</div>
+    <div class="text-xs text-amber-400 uppercase tracking-wider font-semibold mb-3">${selected.code} 区 - ${selected.name}</div>
+    <div class="text-5xl font-bold text-amber-500 mb-3">${formatPace(suggestedPace)}</div>
+    <div class="text-base text-slate-300">建议范围：${rangeMin} ~ ${rangeMax}</div>
   `;
 
   // 列表
@@ -353,13 +353,23 @@ function renderPacePanel() {
     const pace = state.pbPaceSeconds + PACE_OFFSETS[zone.code];
     const isActive = zone.code === state.selectedZone;
 
+    // 区间徽章颜色映射
+    const zoneColors = {
+      'D': 'bg-green-500',
+      'E': 'bg-emerald-500',
+      'M': 'bg-yellow-500',
+      'T': 'bg-orange-500',
+      'A': 'bg-red-400',
+      'I': 'bg-red-600'
+    };
+
     return `
-      <li class="pace-item ${isActive ? 'active' : ''}" data-zone="${zone.code}">
-        <div class="pace-item-zone">
-          <span class="pace-item-badge" data-zone="${zone.code}">${zone.code}</span>
-          <span>${zone.name}</span>
+      <li class="pace-item ${isActive ? 'active' : ''} flex justify-between items-center px-5 py-4 rounded-xl border border-slate-700 bg-slate-900/30" data-zone="${zone.code}">
+        <div class="flex items-center gap-3">
+          <span class="w-10 h-10 flex items-center justify-center rounded-lg ${zoneColors[zone.code]} text-white font-bold text-sm">${zone.code}</span>
+          <span class="text-slate-200 font-semibold">${zone.name}</span>
         </div>
-        <div class="pace-item-value">${formatPace(pace)}</div>
+        <div class="text-2xl font-bold text-amber-500">${formatPace(pace)}</div>
       </li>
     `;
   }).join('');
@@ -383,15 +393,15 @@ function renderIntervalTable() {
 
   tbody.innerHTML = INTERVAL_ROWS.map(row => {
     const pace = row.paceText || formatPace(pbSeconds + row.delta);
-    const typeCell = row.type ? `<span class="badge">${row.type}</span>` : '';
+    const typeCell = row.type ? `<span class="px-2 py-1 rounded bg-amber-500/20 text-amber-500 text-xs font-semibold">${row.type}</span>` : '';
 
     return `
       <tr>
-        <td data-label="训练类型">${typeCell}</td>
-        <td data-label="距离">${row.distance}</td>
-        <td class="numeric font-mono font-bold text-primary" data-label="建议配速">${pace}</td>
-        <td class="numeric font-mono" data-label="间歇时长">${row.rest}</td>
-        <td class="numeric" data-label="建议组数">${row.reps}</td>
+        <td class="px-4 py-3">${typeCell}</td>
+        <td class="px-4 py-3">${row.distance}</td>
+        <td class="px-4 py-3 text-right font-mono font-bold text-amber-500">${pace}</td>
+        <td class="px-4 py-3 text-right font-mono">${row.rest}</td>
+        <td class="px-4 py-3 text-right">${row.reps}</td>
       </tr>
     `;
   }).join('');
@@ -407,9 +417,9 @@ function renderSteadyTable() {
     const trainingPace = pbSeconds + row.delta;
     return `
       <tr>
-        <td data-label="训练类别"><span class="badge">${row.category}</span></td>
-        <td class="numeric font-mono font-bold text-primary" data-label="建议配速">${formatPace(trainingPace)}</td>
-        <td data-label="训练时长">${row.duration}</td>
+        <td class="px-4 py-3"><span class="px-2 py-1 rounded bg-amber-500/20 text-amber-500 text-xs font-semibold">${row.category}</span></td>
+        <td class="px-4 py-3 text-right font-mono font-bold text-amber-500">${formatPace(trainingPace)}</td>
+        <td class="px-4 py-3">${row.duration}</td>
       </tr>
     `;
   }).join('');
@@ -420,9 +430,9 @@ function renderSteadyTable() {
     const predictedSeconds = racePace * row.raceDistance;
     return `
       <tr>
-        <td data-label="比赛项目"><strong>${row.race}</strong></td>
-        <td class="numeric font-mono font-bold" data-label="比赛配速">${formatPace(racePace)}</td>
-        <td class="numeric font-mono font-bold text-primary" data-label="成绩预测">${formatDuration(predictedSeconds)}</td>
+        <td class="px-4 py-3"><strong class="text-slate-200">${row.race}</strong></td>
+        <td class="px-4 py-3 text-right font-mono font-bold">${formatPace(racePace)}</td>
+        <td class="px-4 py-3 text-right font-mono font-bold text-amber-500">${formatDuration(predictedSeconds)}</td>
       </tr>
     `;
   }).join('');

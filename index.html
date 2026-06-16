@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="color-scheme" content="light">
+  <meta name="color-scheme" content="dark">
   <title>Sylas Training Hub - 跑步训练强度交互仪表盘</title>
   <meta name="description" content="交互式跑步训练仪表盘：拖动最大心率、设置 10km PB 配速，实时探索心率区间、呼吸商 RQ 与配速预测的科学联动。基于储备心率法和运动生理学。">
   <meta name="keywords" content="跑步训练,心率区间,配速计算,呼吸商,RQ,储备心率,训练强度,马拉松,间歇训练,Sylas">
   <meta name="author" content="Charles Peng">
-  <meta name="theme-color" content="#2563a8">
+  <meta name="theme-color" content="#020617">
 
   <!-- Open Graph -->
   <meta property="og:title" content="Sylas Training Hub - 跑步训练强度交互仪表盘">
@@ -22,190 +22,499 @@
   <meta name="twitter:title" content="Sylas Training Hub">
   <meta name="twitter:description" content="科学训练，从理解心率与配速的联动开始">
 
-  <link rel="stylesheet" href="./assets/styles.css">
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Microsoft YaHei', sans-serif;
+      background-color: #020617;
+      color: #f8fafc;
+    }
+
+    /* 渐变背景 */
+    .gradient-bg {
+      background: radial-gradient(circle at top right, #1e293b 0%, #020617 50%, #000000 100%);
+      min-height: 100vh;
+    }
+
+    /* 毛玻璃卡片 */
+    .glass-card {
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(245, 158, 11, 0.2);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .glass-card:hover {
+      border-color: rgba(245, 158, 11, 0.4);
+      box-shadow: 0 0 30px rgba(245, 158, 11, 0.1);
+    }
+
+    /* 发光效果 */
+    .glow-gold {
+      text-shadow: 0 0 20px rgba(245, 158, 11, 0.6);
+    }
+
+    .glow-subtle {
+      text-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
+    }
+
+    /* 自定义滑块 */
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 8px;
+      border-radius: 4px;
+      background: linear-gradient(to right, #f59e0b 0%, #ea580c 100%);
+      outline: none;
+      cursor: pointer;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #f8fafc;
+      border: 3px solid #f59e0b;
+      cursor: grab;
+      box-shadow: 0 0 15px rgba(245, 158, 11, 0.5);
+      transition: all 150ms ease;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+      box-shadow: 0 0 25px rgba(245, 158, 11, 0.8);
+    }
+
+    input[type="range"]::-webkit-slider-thumb:active {
+      cursor: grabbing;
+      transform: scale(1.1);
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #f8fafc;
+      border: 3px solid #f59e0b;
+      cursor: grab;
+      box-shadow: 0 0 15px rgba(245, 158, 11, 0.5);
+      transition: all 150ms ease;
+    }
+
+    input[type="range"]::-moz-range-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    /* 心率区间条带 */
+    .zone-bar {
+      display: flex;
+      height: 70px;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    }
+
+    .zone-segment {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 200ms ease;
+      position: relative;
+      border-right: 2px solid rgba(0, 0, 0, 0.3);
+    }
+
+    .zone-segment:last-child {
+      border-right: none;
+    }
+
+    .zone-segment:hover {
+      filter: brightness(1.2);
+      transform: scaleY(1.05);
+    }
+
+    .zone-segment.active {
+      filter: brightness(1.3);
+      transform: scaleY(1.15);
+      box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.6), 0 0 25px rgba(245, 158, 11, 0.5);
+      z-index: 1;
+    }
+
+    .zone-code {
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    }
+
+    .zone-bpm {
+      font-size: 11px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.9);
+      margin-top: 2px;
+    }
+
+    /* 区间配色 */
+    .zone-segment[data-zone="D"] { background: linear-gradient(135deg, #4ade80, #22c55e); }
+    .zone-segment[data-zone="E"] { background: linear-gradient(135deg, #34d399, #10b981); }
+    .zone-segment[data-zone="M"] { background: linear-gradient(135deg, #fbbf24, #f59e0b); }
+    .zone-segment[data-zone="T"] { background: linear-gradient(135deg, #fb923c, #ea580c); }
+    .zone-segment[data-zone="A"] { background: linear-gradient(135deg, #f87171, #ef4444); }
+    .zone-segment[data-zone="I"] { background: linear-gradient(135deg, #ef4444, #dc2626); }
+
+    /* 配速列表项 */
+    .pace-item {
+      transition: all 200ms ease;
+      cursor: pointer;
+    }
+
+    .pace-item:hover {
+      background: rgba(245, 158, 11, 0.1);
+      border-color: #f59e0b;
+    }
+
+    .pace-item.active {
+      background: rgba(245, 158, 11, 0.2);
+      border-color: #f59e0b;
+      border-width: 2px;
+    }
+
+    /* 供能条 */
+    .energy-bar {
+      display: flex;
+      height: 40px;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    .energy-segment {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 600;
+      color: #fff;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+      transition: all 200ms ease;
+    }
+
+    .energy-segment.fat {
+      background: linear-gradient(135deg, #10b981, #14b8a6);
+    }
+
+    .energy-segment.carb {
+      background: linear-gradient(135deg, #fb923c, #f59e0b);
+    }
+
+    /* 配速输入框 */
+    .pace-input {
+      background: rgba(15, 23, 42, 0.8);
+      border: 2px solid rgba(245, 158, 11, 0.3);
+      color: #f59e0b;
+      font-weight: 700;
+      transition: all 200ms ease;
+    }
+
+    .pace-input:focus {
+      outline: none;
+      border-color: #f59e0b;
+      box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+    }
+
+    /* 动画 */
+    @keyframes pulse-glow {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+
+    .animate-pulse-glow {
+      animation: pulse-glow 2s ease-in-out infinite;
+    }
+
+    /* Details 折叠 */
+    details summary {
+      cursor: pointer;
+      user-select: none;
+      list-style: none;
+    }
+
+    details summary::-webkit-details-marker {
+      display: none;
+    }
+
+    details summary::before {
+      content: '▸';
+      display: inline-block;
+      margin-right: 8px;
+      transition: transform 200ms ease;
+    }
+
+    details[open] summary::before {
+      transform: rotate(90deg);
+    }
+
+    /* 表格样式 */
+    .table-dark {
+      background: rgba(15, 23, 42, 0.4);
+    }
+
+    .table-dark th {
+      background: rgba(30, 41, 59, 0.8);
+      color: #94a3b8;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .table-dark tbody tr:hover {
+      background: rgba(245, 158, 11, 0.1);
+    }
+
+    .table-dark td {
+      border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+    }
+  </style>
 </head>
-<body>
-  <div class="container">
+<body class="gradient-bg">
+
+  <!-- 导航栏 -->
+  <nav class="sticky top-0 z-50 backdrop-blur-md bg-slate-950/80 border-b border-slate-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex justify-between items-center">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 bg-amber-500 rounded-full animate-pulse-glow"></div>
+        <span class="text-xl font-bold tracking-tight glow-subtle">SYLAS TRAINING HUB</span>
+      </div>
+      <div class="text-xs font-mono text-amber-500 uppercase tracking-widest hidden md:block">
+        科学训练 · 实时联动
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8">
 
     <!-- Hero 头部 -->
-    <header class="hero">
-      <p class="hero-eyebrow">Sylas Training Hub</p>
-      <h1 class="hero-title">🏃 跑步训练强度仪表盘</h1>
-      <p class="hero-subtitle">
+    <header class="text-center py-12">
+      <p class="text-amber-500 text-sm font-bold uppercase tracking-widest mb-3">Sylas Training Hub</p>
+      <h1 class="text-4xl sm:text-5xl md:text-6xl font-extrabold mb-4 glow-gold">
+        🏃 跑步训练强度仪表盘
+      </h1>
+      <p class="text-slate-400 max-w-3xl mx-auto text-base sm:text-lg leading-relaxed">
         拖动滑块设置最大心率与 10km PB 配速，点击区间条带选择目标强度，
-        即可实时探索<strong>心率区间</strong>、<strong>呼吸商 RQ</strong> 与<strong>配速预测</strong>三者之间的科学联动。
+        即可实时探索<strong class="text-amber-500">心率区间</strong>、<strong class="text-amber-500">呼吸商 RQ</strong> 与<strong class="text-amber-500">配速预测</strong>三者之间的科学联动。
       </p>
     </header>
 
-    <!-- ⚙️ 设置区 -->
-    <section class="card settings" aria-label="训练参数设置">
-      <div class="settings-head">
-        <h2 class="card-title">⚙️ 基础参数</h2>
-        <button class="btn-ghost" id="resetBtn" type="button">重置</button>
+    <!-- ⚙️ 基础参数设置 -->
+    <section class="glass-card rounded-3xl p-6 sm:p-8">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold text-amber-500">⚙️ 基础参数</h2>
+        <button id="resetBtn"
+                class="px-4 py-2 rounded-lg border border-slate-700 hover:border-amber-500 hover:bg-amber-500/10 transition text-sm font-semibold">
+          重置
+        </button>
       </div>
 
-      <div class="controls">
+      <div class="space-y-6">
         <!-- 最大心率 -->
-        <div class="control">
-          <div class="control-top">
-            <label for="maxHR" class="control-label">最大心率</label>
-            <output class="control-value" id="maxHRValue">185 <small>bpm</small></output>
+        <div>
+          <div class="flex justify-between items-baseline mb-3">
+            <label for="maxHR" class="text-sm font-semibold text-slate-300">最大心率</label>
+            <output id="maxHRValue" class="text-2xl font-bold text-amber-500">
+              185 <small class="text-sm text-slate-400">bpm</small>
+            </output>
           </div>
-          <input type="range" id="maxHR" class="slider" min="150" max="210" step="1" value="185"
-                 aria-label="最大心率（bpm）">
-          <span class="control-hint">可由 220−年龄 估算，或填入手表实测值。</span>
+          <input type="range" id="maxHR" min="150" max="210" step="1" value="185" aria-label="最大心率（bpm）">
+          <p class="text-xs text-slate-500 mt-2">可由 220−年龄 估算，或填入手表实测值。</p>
         </div>
 
         <!-- 静息心率 -->
-        <div class="control">
-          <div class="control-top">
-            <label for="restHR" class="control-label">静息心率</label>
-            <output class="control-value" id="restHRValue">60 <small>bpm</small></output>
+        <div>
+          <div class="flex justify-between items-baseline mb-3">
+            <label for="restHR" class="text-sm font-semibold text-slate-300">静息心率</label>
+            <output id="restHRValue" class="text-2xl font-bold text-amber-500">
+              60 <small class="text-sm text-slate-400">bpm</small>
+            </output>
           </div>
-          <input type="range" id="restHR" class="slider" min="40" max="90" step="1" value="60"
-                 aria-label="静息心率（bpm）">
-          <span class="control-hint">清晨自然醒、起身前测量，连续 3-7 天取平均。</span>
+          <input type="range" id="restHR" min="40" max="90" step="1" value="60" aria-label="静息心率（bpm）">
+          <p class="text-xs text-slate-500 mt-2">清晨自然醒、起身前测量，连续 3-7 天取平均。</p>
         </div>
 
         <!-- 10km PB 配速 -->
-        <div class="control">
-          <div class="control-top">
-            <label for="pbPace" class="control-label">10km PB 配速</label>
-            <output class="control-value" id="reserveValue">储备 125 <small>bpm</small></output>
+        <div>
+          <div class="flex justify-between items-baseline mb-3">
+            <label for="pbPace" class="text-sm font-semibold text-slate-300">10km PB 配速</label>
+            <output id="reserveValue" class="text-lg font-bold text-slate-400">
+              储备 125 <small class="text-sm text-slate-500">bpm</small>
+            </output>
           </div>
-          <input type="text" id="pbPace" class="pace-input" value="03:50" placeholder="mm:ss"
-                 maxlength="5" inputmode="numeric" aria-label="10公里个人最好配速（分:秒）">
-          <span class="control-hint" id="pbPaceHint">格式 mm:ss，作为各区间配速推算的基准。</span>
+          <input type="text"
+                 id="pbPace"
+                 class="pace-input w-full px-4 py-3 rounded-xl text-center text-xl"
+                 value="03:50"
+                 placeholder="mm:ss"
+                 maxlength="5"
+                 inputmode="numeric"
+                 aria-label="10公里个人最好配速（分:秒）">
+          <p id="pbPaceHint" class="text-xs text-slate-500 mt-2">格式 mm:ss，作为各区间配速推算的基准。</p>
         </div>
       </div>
     </section>
 
     <!-- 📊 心率区间图 -->
-    <section class="card" aria-label="心率区间">
-      <h2 class="card-title">📊 心率区间图</h2>
-      <p class="card-subtitle">
-        基于储备心率法划分的 6 个训练区间。点击任意区间设为<strong>目标区间</strong>，
+    <section class="glass-card rounded-3xl p-6 sm:p-8">
+      <h2 class="text-2xl font-bold text-amber-500 mb-2">📊 心率区间图</h2>
+      <p class="text-slate-400 text-sm mb-6">
+        基于储备心率法划分的 6 个训练区间。点击任意区间设为<strong class="text-amber-500">目标区间</strong>，
         下方呼吸商与配速预测会随之联动。
       </p>
 
-      <div class="zone-bar" id="zoneBar" role="tablist" aria-label="选择目标训练区间">
+      <div class="zone-bar mb-4" id="zoneBar" role="tablist" aria-label="选择目标训练区间">
         <!-- 动态填充区间段 -->
       </div>
 
-      <div class="zone-scale" id="zoneScale" aria-hidden="true">
+      <div class="flex justify-between text-xs text-slate-500 mb-4" id="zoneScale" aria-hidden="true">
         <!-- 动态填充刻度 -->
       </div>
 
-      <div class="zone-detail" id="zoneDetail">
+      <div id="zoneDetail" class="p-5 rounded-xl bg-slate-900/50 border border-slate-700">
         <!-- 动态填充：选中区间概要 -->
       </div>
     </section>
 
     <!-- 🫁 呼吸商 RQ 指示 -->
-    <section class="card" aria-label="呼吸商指示">
-      <h2 class="card-title">🫁 呼吸商 RQ 指示</h2>
-      <p class="card-subtitle">
+    <section class="glass-card rounded-3xl p-6 sm:p-8">
+      <h2 class="text-2xl font-bold text-amber-500 mb-2">🫁 呼吸商 RQ 指示</h2>
+      <p class="text-slate-400 text-sm mb-6">
         呼吸商（RQ）反映身体的供能来源：越接近 0.7 越倾向燃脂，越接近 1.0 越倚重糖原。
       </p>
 
-      <div class="rq-panel" id="rqPanel">
+      <div id="rqPanel">
         <!-- 动态填充 -->
       </div>
     </section>
 
     <!-- ⏱️ 配速预测 -->
-    <section class="card" aria-label="配速预测">
-      <h2 class="card-title">⏱️ 配速预测</h2>
-      <p class="card-subtitle">
+    <section class="glass-card rounded-3xl p-6 sm:p-8">
+      <h2 class="text-2xl font-bold text-amber-500 mb-2">⏱️ 配速预测</h2>
+      <p class="text-slate-400 text-sm mb-6">
         以 10km PB 为基准，按运动生理学经验偏移推算各区间的建议配速（每公里）。
       </p>
 
-      <div class="pace-hero" id="paceHero">
+      <div id="paceHero" class="text-center p-8 rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-600/20 border-2 border-amber-500/30 mb-6">
         <!-- 动态填充：选中区间的大字配速 -->
       </div>
 
-      <ul class="pace-list" id="paceList">
+      <ul id="paceList" class="space-y-2">
         <!-- 动态填充：全部区间配速 -->
       </ul>
     </section>
 
     <!-- 📋 详细课表（折叠） -->
-    <details class="card details-block">
-      <summary class="details-summary">📋 详细课表（间歇训练 · 比赛成绩预测）</summary>
+    <details class="glass-card rounded-3xl overflow-hidden">
+      <summary class="px-6 sm:px-8 py-5 text-lg font-bold hover:bg-slate-800/50 transition">
+        📋 详细课表（间歇训练 · 比赛成绩预测）
+      </summary>
 
-      <div class="details-body">
-        <h3 class="sub-title">间歇训练建议</h3>
-        <p class="card-subtitle">基于 10km PB 配速，按秒数增减得到不同距离的建议配速和组数安排。</p>
-        <div class="table-wrapper">
-          <table class="table">
-            <thead>
-              <tr>
-                <th>训练类型</th>
-                <th>距离</th>
-                <th class="numeric">建议配速</th>
-                <th class="numeric">间歇时长</th>
-                <th class="numeric">建议组数</th>
-              </tr>
-            </thead>
-            <tbody id="intervalTableBody"></tbody>
-          </table>
+      <div class="px-6 sm:px-8 pb-8 space-y-8">
+        <!-- 间歇训练建议 -->
+        <div>
+          <h3 class="text-xl font-bold text-slate-200 mb-2">间歇训练建议</h3>
+          <p class="text-sm text-slate-400 mb-4">基于 10km PB 配速，按秒数增减得到不同距离的建议配速和组数安排。</p>
+          <div class="overflow-x-auto rounded-xl border border-slate-700">
+            <table class="table-dark w-full min-w-[700px] text-sm">
+              <thead>
+                <tr>
+                  <th class="px-4 py-3 text-left">训练类型</th>
+                  <th class="px-4 py-3 text-left">距离</th>
+                  <th class="px-4 py-3 text-right">建议配速</th>
+                  <th class="px-4 py-3 text-right">间歇时长</th>
+                  <th class="px-4 py-3 text-right">建议组数</th>
+                </tr>
+              </thead>
+              <tbody id="intervalTableBody" class="text-slate-300">
+                <!-- 动态填充 -->
+              </tbody>
+            </table>
+          </div>
         </div>
 
-        <h3 class="sub-title">匀速跑训练</h3>
-        <p class="card-subtitle">基于 10km PB 配速的长距离有氧与节奏跑建议配速。</p>
-        <div class="table-wrapper">
-          <table class="table">
-            <thead>
-              <tr>
-                <th>训练类别</th>
-                <th class="numeric">建议配速</th>
-                <th>训练时长</th>
-              </tr>
-            </thead>
-            <tbody id="steadyTrainingBody"></tbody>
-          </table>
+        <!-- 匀速跑训练 -->
+        <div>
+          <h3 class="text-xl font-bold text-slate-200 mb-2">匀速跑训练</h3>
+          <p class="text-sm text-slate-400 mb-4">基于 10km PB 配速的长距离有氧与节奏跑建议配速。</p>
+          <div class="overflow-x-auto rounded-xl border border-slate-700">
+            <table class="table-dark w-full min-w-[500px] text-sm">
+              <thead>
+                <tr>
+                  <th class="px-4 py-3 text-left">训练类别</th>
+                  <th class="px-4 py-3 text-right">建议配速</th>
+                  <th class="px-4 py-3 text-left">训练时长</th>
+                </tr>
+              </thead>
+              <tbody id="steadyTrainingBody" class="text-slate-300">
+                <!-- 动态填充 -->
+              </tbody>
+            </table>
+          </div>
         </div>
 
-        <h3 class="sub-title">比赛成绩预测</h3>
-        <p class="card-subtitle">根据 10km PB 配速推算的各距离比赛成绩预测。</p>
-        <div class="table-wrapper">
-          <table class="table">
-            <thead>
-              <tr>
-                <th>比赛项目</th>
-                <th class="numeric">比赛配速</th>
-                <th class="numeric">成绩预测</th>
-              </tr>
-            </thead>
-            <tbody id="racePredicBody"></tbody>
-          </table>
-        </div>
+        <!-- 比赛成绩预测 -->
+        <div>
+          <h3 class="text-xl font-bold text-slate-200 mb-2">比赛成绩预测</h3>
+          <p class="text-sm text-slate-400 mb-4">根据 10km PB 配速推算的各距离比赛成绩预测。</p>
+          <div class="overflow-x-auto rounded-xl border border-slate-700">
+            <table class="table-dark w-full min-w-[500px] text-sm">
+              <thead>
+                <tr>
+                  <th class="px-4 py-3 text-left">比赛项目</th>
+                  <th class="px-4 py-3 text-right">比赛配速</th>
+                  <th class="px-4 py-3 text-right">成绩预测</th>
+                </tr>
+              </thead>
+              <tbody id="racePredicBody" class="text-slate-300">
+                <!-- 动态填充 -->
+              </tbody>
+            </table>
+          </div>
 
-        <p class="fineprint">比赛成绩预测按「比赛配速 × 距离」计算。半马 21.0975km，全马 42.195km。</p>
+          <p class="text-xs text-slate-500 mt-4">比赛成绩预测按「比赛配速 × 距离」计算。半马 21.0975km，全马 42.195km。</p>
+        </div>
       </div>
     </details>
 
     <!-- 科学原理 + 免责声明（折叠） -->
-    <details class="card details-block">
-      <summary class="details-summary">📖 科学原理与免责声明</summary>
-      <div class="details-body fineprint">
-        <p><strong>储备心率法（Karvonen）：</strong>目标心率 = 静息心率 +（最大心率 − 静息心率）× 强度百分比。相比单纯按最大心率百分比，它纳入了个体静息心率，区间更贴合实际。</p>
-        <p><strong>呼吸商 RQ：</strong>二氧化碳产出与氧气消耗之比。约 0.7 表示几乎纯脂肪供能，约 1.0 表示几乎纯糖（碳水）供能，中间为混合供能。RQ 随运动强度升高而上升。</p>
-        <p><strong>配速预测：</strong>以 10km PB 为锚点，按各训练区间的经验偏移推算，仅供参考。</p>
-        <p><strong>⚠️ 免责声明：</strong>本工具数值为通用科学数据的泛化估算，个体差异较大（心率 ±10–20 bpm）。实际训练请结合自身感觉、心率表实时监测，并咨询专业教练或医生。本工具不构成医疗或训练建议。</p>
+    <details class="glass-card rounded-3xl overflow-hidden">
+      <summary class="px-6 sm:px-8 py-5 text-lg font-bold hover:bg-slate-800/50 transition">
+        📖 科学原理与免责声明
+      </summary>
+      <div class="px-6 sm:px-8 pb-8 text-sm text-slate-400 leading-relaxed space-y-4">
+        <p><strong class="text-slate-300">储备心率法（Karvonen）：</strong>目标心率 = 静息心率 +（最大心率 − 静息心率）× 强度百分比。相比单纯按最大心率百分比，它纳入了个体静息心率，区间更贴合实际。</p>
+        <p><strong class="text-slate-300">呼吸商 RQ：</strong>二氧化碳产出与氧气消耗之比。约 0.7 表示几乎纯脂肪供能，约 1.0 表示几乎纯糖（碳水）供能，中间为混合供能。RQ 随运动强度升高而上升。</p>
+        <p><strong class="text-slate-300">配速预测：</strong>以 10km PB 为锚点，按各训练区间的经验偏移推算，仅供参考。</p>
+        <p class="pt-2 border-t border-slate-700"><strong class="text-amber-500">⚠️ 免责声明：</strong>本工具数值为通用科学数据的泛化估算，个体差异较大（心率 ±10–20 bpm）。实际训练请结合自身感觉、心率表实时监测，并咨询专业教练或医生。本工具不构成医疗或训练建议。</p>
       </div>
     </details>
 
     <!-- 页脚 -->
-    <footer class="footer">
-      <p>
-        <strong>设计与开发：</strong>Charles Peng
+    <footer class="text-center py-12 border-t border-slate-800">
+      <p class="text-sm text-slate-500">
+        <strong class="text-slate-400">设计与开发：</strong>Charles Peng
         ·
-        <a href="mailto:pengpcy@qq.com">pengpcy@qq.com</a>
+        <a href="mailto:pengpcy@qq.com" class="text-amber-500 hover:text-amber-400 transition">pengpcy@qq.com</a>
       </p>
     </footer>
 
-  </div>
+  </main>
 
   <script src="./assets/app.js"></script>
 </body>
