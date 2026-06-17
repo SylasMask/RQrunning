@@ -12,6 +12,9 @@ const state = {
   pbPaceSeconds: 230
 };
 
+const STORAGE_KEY = 'rqrunning-settings';
+let urlUpdateFrame = null;
+
 // 训练区间配置（复用原有数据）
 const HR_ZONES = [
   {
@@ -222,8 +225,9 @@ function recompute() {
   renderLongIntervalTable();
   renderSteadyTable();
 
-  // 7. URL 同步（可选）
+  // 7. 同步分享 URL 与本地设置
   updateURL();
+  saveToLocalStorage();
 }
 
 // =============================================================================
@@ -464,12 +468,84 @@ function renderSteadyTable() {
 // =============================================================================
 
 function updateURL() {
+  if (urlUpdateFrame) {
+    cancelAnimationFrame(urlUpdateFrame);
+  }
+
+  urlUpdateFrame = requestAnimationFrame(() => {
+    const url = new URL(window.location);
+    url.searchParams.set('maxHR', state.maxHR);
+    url.searchParams.set('restHR', state.restHR);
+    url.searchParams.set('pbPace', state.pbPace);
+    url.searchParams.set('zone', state.selectedZone);
+    window.history.replaceState({}, '', url);
+    urlUpdateFrame = null;
+  });
+}
+
+function saveToLocalStorage() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      maxHR: state.maxHR,
+      restHR: state.restHR,
+      pbPace: state.pbPace,
+      selectedZone: state.selectedZone
+    }));
+  } catch (error) {
+    // 浏览器隐私模式或禁用存储时忽略，不影响计算功能。
+  }
+}
+
+function loadFromLocalStorage() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+
+    const saved = JSON.parse(raw);
+    if (Number.isInteger(saved.maxHR) && saved.maxHR >= 150 && saved.maxHR <= 210) {
+      state.maxHR = saved.maxHR;
+      document.getElementById('maxHR').value = saved.maxHR;
+    }
+    if (Number.isInteger(saved.restHR) && saved.restHR >= 40 && saved.restHR <= 90) {
+      state.restHR = saved.restHR;
+      document.getElementById('restHR').value = saved.restHR;
+    }
+    if (parsePace(saved.pbPace)) {
+      state.pbPace = saved.pbPace;
+      document.getElementById('pbPace').value = saved.pbPace;
+    }
+    if (['D', 'E', 'M', 'T', 'A', 'I'].includes(saved.selectedZone)) {
+      state.selectedZone = saved.selectedZone;
+    }
+  } catch (error) {
+    localStorage.removeItem(STORAGE_KEY);
+  }
+}
+
+function getShareURL() {
   const url = new URL(window.location);
   url.searchParams.set('maxHR', state.maxHR);
   url.searchParams.set('restHR', state.restHR);
   url.searchParams.set('pbPace', state.pbPace);
   url.searchParams.set('zone', state.selectedZone);
-  window.history.replaceState({}, '', url);
+  return url.toString();
+}
+
+async function copyShareLink(button) {
+  const shareURL = getShareURL();
+  const originalText = button.textContent;
+
+  try {
+    await navigator.clipboard.writeText(shareURL);
+    button.textContent = '已复制';
+  } catch (error) {
+    window.prompt('复制失败，请手动复制链接：', shareURL);
+    button.textContent = '复制链接';
+  }
+
+  setTimeout(() => {
+    button.textContent = originalText;
+  }, 1600);
 }
 
 function loadFromURL() {
@@ -512,6 +588,7 @@ function initControls() {
   const restHRSlider = document.getElementById('restHR');
   const pbPaceInput = document.getElementById('pbPace');
   const resetBtn = document.getElementById('resetBtn');
+  const shareBtn = document.getElementById('shareBtn');
 
   // 最大心率（添加验证）
   maxHRSlider.addEventListener('input', (e) => {
@@ -597,6 +674,10 @@ function initControls() {
 
     recompute();
   });
+
+  shareBtn.addEventListener('click', () => {
+    copyShareLink(shareBtn);
+  });
 }
 
 // =============================================================================
@@ -604,8 +685,8 @@ function initControls() {
 // =============================================================================
 
 document.addEventListener('DOMContentLoaded', () => {
+  loadFromLocalStorage();
   loadFromURL();
   initControls();
   recompute();
-  console.log('🏃 呼吸节奏 (RQrunning) - Interactive Widget initialized');
 });

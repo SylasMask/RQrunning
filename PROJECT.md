@@ -1,13 +1,13 @@
-# Sylas Training Hub - 项目文件清单
+# 呼吸节奏 RQrunning - 项目文件清单
 
 ## 📁 项目结构
 
 ```
-sylas-training-hub/
-├── index.html              ✅ 主页面入口 (13KB)
+rqrunning/
+├── index.html              ✅ 主页面入口
 ├── assets/
-│   ├── styles.css          ✅ 统一样式表 (18KB)
-│   └── app.js              ✅ 核心逻辑 (17KB)
+│   ├── styles.css          ✅ 统一样式表
+│   └── app.js              ✅ 核心逻辑
 ├── favicon.svg             ✅ SVG 图标
 ├── favicon.ico             ✅ ICO 图标 (15KB)
 ├── apple-touch-icon.png    ✅ iOS 图标 (13KB)
@@ -43,14 +43,18 @@ sylas-training-hub/
 - ✅ 复制分享链接功能
 - ✅ 从 URL 加载参数自动计算
 
-### 5. 响应式设计
+### 5. 本地参数记忆
+- ✅ 自动保存最大心率、静息心率、10km PB 配速和目标区间
+- ✅ 下次打开自动恢复最近设置
+
+### 6. 响应式设计
 - ✅ 桌面端优化布局
 - ✅ 移动端适配（< 768px）
 - ✅ 表格横向滚动
 - ✅ 触摸友好的交互
 
-### 6. 视觉设计
-- ✅ 统一主题色系（#c8694a）
+### 7. 视觉设计
+- ✅ 统一主题色系（#00ff88）
 - ✅ 卡片化设计
 - ✅ 柔和阴影
 - ✅ 清晰的层次结构
@@ -77,6 +81,7 @@ sylas-training-hub/
 - [ ] 个性化系数调整
 
 ### 功能增强
+- [x] 本地参数保存
 - [ ] 本地存储历史记录
 - [ ] 数据导出（PDF/图片）
 - [ ] 打印友好样式

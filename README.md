@@ -10,6 +10,7 @@
 - **配速课表设计** - 基于10km PB配速，生成间歇训练和比赛成绩预测
 - **智能联动** - 心率与配速对照，一站式训练方案
 - **运动科技风** - 荧光绿主色，深色模式，适合跑步场景
+- **参数记忆与分享** - 自动保存本地参数，支持一键复制分享链接
 
 ## 项目名称含义
 
@@ -27,6 +28,7 @@
 rqrunning/
 ├── index.html              # 主页面
 ├── assets/
+│   ├── styles.css          # 页面样式
 │   └── app.js              # 核心逻辑
 ├── favicon.svg             # 网站图标
 ├── og-image.png            # 社交分享预览图
@@ -36,9 +38,17 @@ rqrunning/
 ## 技术栈
 
 - 纯静态页面（HTML + Tailwind CSS + JavaScript）
-- 零依赖构建
+- 零构建步骤，运行时使用 Tailwind CDN 与 Google Fonts
 - 响应式设计
-- 支持 URL 分享
+- 支持 URL 分享与本地参数保存
+
+## 本地预览
+
+```bash
+python -m http.server 8000
+```
+
+然后打开 `http://localhost:8000`。
 
 ## 部署
 

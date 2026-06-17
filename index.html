@@ -16,350 +16,21 @@
   <meta property="og:type" content="website">
   <meta property="og:locale" content="zh_CN">
   <meta property="og:url" content="https://rqrunning.com/">
+  <meta property="og:image" content="https://rqrunning.com/og-image.png">
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="呼吸节奏 RQrunning">
   <meta name="twitter:description" content="科学训练，从理解呼吸与节奏的联动开始">
+  <meta name="twitter:image" content="https://rqrunning.com/og-image.png">
 
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="./assets/styles.css">
 
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-
-    :root {
-      /* 运动科技配色 */
-      --sport-green: #00ff88;      /* 荧光绿 - 主色 */
-      --sport-cyan: #00d9ff;       /* 青色 - 辅助色 */
-      --sport-orange: #ff6b35;     /* 橙色 - 警告/高强度 */
-      --bg-dark: #1a1a1a;          /* 深灰背景 */
-      --bg-card: #242424;          /* 卡片背景 */
-      --bg-card-hover: #2a2a2a;    /* 卡片 hover */
-      --text-primary: #ffffff;     /* 主文字 */
-      --text-secondary: #b0b0b0;   /* 次要文字 */
-      --border: #333333;           /* 边框 */
-    }
-
-    body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Microsoft YaHei', sans-serif;
-      background-color: var(--bg-dark);
-      color: var(--text-primary);
-    }
-
-    /* 简洁渐变背景 */
-    .gradient-bg {
-      background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%);
-      min-height: 100vh;
-    }
-
-    /* 简化卡片效果 */
-    .glass-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .glass-card:hover {
-      border-color: var(--sport-green);
-      box-shadow: 0 4px 24px rgba(0, 255, 136, 0.15);
-    }
-
-    /* 运动感发光 */
-    .glow-sport {
-      text-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
-    }
-
-    .glow-subtle {
-      text-shadow: 0 0 8px rgba(0, 255, 136, 0.3);
-    }
-
-    /* 自定义滑块 - 运动绿 */
-    input[type="range"] {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 100%;
-      height: 6px;
-      border-radius: 3px;
-      background: linear-gradient(to right, var(--sport-green) 0%, var(--sport-cyan) 100%);
-      outline: none;
-      cursor: pointer;
-    }
-
-    input[type="range"]::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      background: #fff;
-      border: 3px solid var(--sport-green);
-      cursor: grab;
-      box-shadow: 0 0 10px rgba(0, 255, 136, 0.6), 0 2px 8px rgba(0, 0, 0, 0.3);
-      transition: all 150ms ease;
-    }
-
-    input[type="range"]::-webkit-slider-thumb:hover {
-      transform: scale(1.15);
-      box-shadow: 0 0 20px rgba(0, 255, 136, 0.8), 0 2px 12px rgba(0, 0, 0, 0.4);
-    }
-
-    input[type="range"]::-webkit-slider-thumb:active {
-      cursor: grabbing;
-      transform: scale(1.05);
-    }
-
-    input[type="range"]::-moz-range-thumb {
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      background: #fff;
-      border: 3px solid var(--sport-green);
-      cursor: grab;
-      box-shadow: 0 0 10px rgba(0, 255, 136, 0.6);
-      transition: all 150ms ease;
-    }
-
-    input[type="range"]::-moz-range-thumb:hover {
-      transform: scale(1.15);
-    }
-
-    /* 心率区间条带 - 运动直觉渐变 */
-    .zone-bar {
-      display: flex;
-      height: 64px;
-      border-radius: 10px;
-      overflow: hidden;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
-    }
-
-    .zone-segment {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: all 200ms ease;
-      position: relative;
-      border-right: 2px solid rgba(0, 0, 0, 0.4);
-    }
-
-    .zone-segment:last-child {
-      border-right: none;
-    }
-
-    .zone-segment:hover {
-      filter: brightness(1.15);
-      transform: scaleY(1.08);
-    }
-
-    .zone-segment.active {
-      filter: brightness(1.25);
-      transform: scaleY(1.2);
-      box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.8), 0 0 20px rgba(0, 255, 136, 0.4);
-      z-index: 1;
-    }
-
-    .zone-code {
-      font-size: 17px;
-      font-weight: 700;
-      color: #fff;
-      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
-    }
-
-    .zone-bpm {
-      font-size: 11px;
-      font-weight: 600;
-      color: rgba(255, 255, 255, 0.95);
-      margin-top: 2px;
-    }
-
-    /* 高对比度运动配色 - 符合生理学直觉 */
-    .zone-segment[data-zone="D"] { background: linear-gradient(135deg, #00ff88, #00d9a5); } /* 荧光绿 - 恢复 */
-    .zone-segment[data-zone="E"] { background: linear-gradient(135deg, #00d9ff, #00b4d8); } /* 青色 - 有氧 */
-    .zone-segment[data-zone="M"] { background: linear-gradient(135deg, #ffd60a, #ffc300); } /* 金黄 - 马拉松 */
-    .zone-segment[data-zone="T"] { background: linear-gradient(135deg, #ffba08, #ff9500); } /* 橙色 - 乳酸阈 */
-    .zone-segment[data-zone="A"] { background: linear-gradient(135deg, #ff6b35, #ff4500); } /* 橙红 - 有氧动力 */
-    .zone-segment[data-zone="I"] { background: linear-gradient(135deg, #ff006e, #d00000); } /* 红色 - 无氧 */
-
-    /* 配速列表项 - 高对比度 */
-    .pace-item {
-      transition: all 200ms ease;
-      cursor: pointer;
-      border: 1px solid var(--border);
-      background: var(--bg-card);
-    }
-
-    .pace-item:hover {
-      background: var(--bg-card-hover);
-      border-color: var(--sport-green);
-      box-shadow: 0 2px 12px rgba(0, 255, 136, 0.15);
-    }
-
-    .pace-item.active {
-      background: rgba(0, 255, 136, 0.15);
-      border-color: var(--sport-green);
-      border-width: 2px;
-      box-shadow: 0 4px 16px rgba(0, 255, 136, 0.25);
-    }
-
-    /* 供能条 */
-    .energy-bar {
-      display: flex;
-      height: 40px;
-      border-radius: 8px;
-      overflow: hidden;
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
-    }
-
-    .energy-segment {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 13px;
-      font-weight: 600;
-      color: #fff;
-      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
-      transition: all 200ms ease;
-    }
-
-    .energy-segment.fat {
-      background: linear-gradient(135deg, #00ff88, #00d9a5);
-    }
-
-    .energy-segment.carb {
-      background: linear-gradient(135deg, #ff6b35, #ff9500);
-    }
-
-    /* 配速输入框 - 高对比度 */
-    .pace-input {
-      background: var(--bg-card);
-      border: 2px solid var(--border);
-      color: var(--sport-green);
-      font-weight: 700;
-      transition: all 200ms ease;
-    }
-
-    .pace-input:focus {
-      outline: none;
-      border-color: var(--sport-green);
-      box-shadow: 0 0 0 3px rgba(0, 255, 136, 0.2);
-    }
-
-    /* 动画 - 简化 */
-    @keyframes pulse-glow {
-      0%, 100% { opacity: 1; box-shadow: 0 0 8px var(--sport-green); }
-      50% { opacity: 0.8; box-shadow: 0 0 16px var(--sport-green); }
-    }
-
-    .animate-pulse-glow {
-      animation: pulse-glow 2s ease-in-out infinite;
-    }
-
-    /* Details 折叠 */
-    details summary {
-      cursor: pointer;
-      user-select: none;
-      list-style: none;
-    }
-
-    details summary::-webkit-details-marker {
-      display: none;
-    }
-
-    details summary::before {
-      content: '▸';
-      display: inline-block;
-      margin-right: 8px;
-      transition: transform 200ms ease;
-      color: var(--sport-green);
-    }
-
-    details[open] summary::before {
-      transform: rotate(90deg);
-    }
-
-    /* 表格样式 - 高对比度 */
-    .table-dark {
-      background: var(--bg-card);
-    }
-
-    .table-dark th {
-      background: rgba(0, 0, 0, 0.4);
-      color: var(--text-secondary);
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-
-    .table-dark tbody tr:hover {
-      background: rgba(0, 255, 136, 0.08);
-    }
-
-    .table-dark td {
-      border-bottom: 1px solid var(--border);
-    }
-
-    /* 移动端表格卡片式布局 */
-    @media (max-width: 768px) {
-      .table-wrapper {
-        border: none;
-        border-radius: 0;
-      }
-
-      .table-dark {
-        display: block;
-        background: transparent;
-      }
-
-      .table-dark thead {
-        display: none;
-      }
-
-      .table-dark tbody {
-        display: block;
-      }
-
-      .table-dark tbody tr {
-        display: block;
-        margin-bottom: 12px;
-        padding: 16px;
-        border-radius: 12px;
-        background: var(--bg-card);
-        border: 1px solid var(--border);
-      }
-
-      .table-dark tbody tr:hover {
-        background: var(--bg-card);
-      }
-
-      .table-dark td {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 8px 0;
-        border-bottom: none;
-      }
-
-      .table-dark td:not(:last-child) {
-        border-bottom: 1px solid var(--border);
-      }
-
-      .table-dark td::before {
-        content: attr(data-label);
-        font-weight: 600;
-        color: var(--text-secondary);
-        font-size: 12px;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-      }
-
-      .table-dark td[class*="text-right"] {
-        justify-content: space-between;
-      }
-    }
-  </style>
 </head>
 <body class="gradient-bg">
 
@@ -394,13 +65,18 @@
     <section class="glass-card rounded-3xl p-6 sm:p-8">
       <div class="flex justify-between items-center mb-6">
         <h2 class="text-2xl font-bold" style="color: var(--sport-green);">⚙️ 基础参数</h2>
-        <button id="resetBtn"
-                class="px-4 py-2 rounded-lg transition text-sm font-semibold"
-                style="border: 1px solid var(--border); color: var(--text-primary);"
-                onmouseover="this.style.borderColor='var(--sport-green)'; this.style.background='rgba(0,255,136,0.1)';"
-                onmouseout="this.style.borderColor='var(--border)'; this.style.background='transparent';">
-          重置
-        </button>
+        <div class="flex gap-2">
+          <button id="shareBtn"
+                  class="interactive-button px-4 py-2 rounded-lg transition text-sm font-semibold"
+                  style="border: 1px solid var(--border); color: var(--text-primary);">
+            复制链接
+          </button>
+          <button id="resetBtn"
+                  class="interactive-button px-4 py-2 rounded-lg transition text-sm font-semibold"
+                  style="border: 1px solid var(--border); color: var(--text-primary);">
+            重置
+          </button>
+        </div>
       </div>
 
       <div class="space-y-6">
@@ -500,7 +176,7 @@
 
     <!-- 📋 详细课表 - 短间歇训练 -->
     <details class="glass-card rounded-3xl overflow-hidden">
-      <summary class="px-6 sm:px-8 py-5 text-lg font-bold transition cursor-pointer" style="color: var(--text-primary);" onmouseover="this.style.background='var(--bg-card-hover)';" onmouseout="this.style.background='';">
+      <summary class="interactive-summary px-6 sm:px-8 py-5 text-lg font-bold transition cursor-pointer" style="color: var(--text-primary);">
         🏃‍♂️ 短间歇训练（400m - 1000m）
       </summary>
 
@@ -526,7 +202,7 @@
 
     <!-- 📋 详细课表 - 长间歇训练 -->
     <details class="glass-card rounded-3xl overflow-hidden">
-      <summary class="px-6 sm:px-8 py-5 text-lg font-bold transition cursor-pointer" style="color: var(--text-primary);" onmouseover="this.style.background='var(--bg-card-hover)';" onmouseout="this.style.background='';">
+      <summary class="interactive-summary px-6 sm:px-8 py-5 text-lg font-bold transition cursor-pointer" style="color: var(--text-primary);">
         🏃 长间歇（2000m - 5000m）
       </summary>
 
@@ -552,7 +228,7 @@
 
     <!-- 📋 详细课表 - 匀速跑训练 -->
     <details class="glass-card rounded-3xl overflow-hidden">
-      <summary class="px-6 sm:px-8 py-5 text-lg font-bold transition cursor-pointer" style="color: var(--text-primary);" onmouseover="this.style.background='var(--bg-card-hover)';" onmouseout="this.style.background='';">
+      <summary class="interactive-summary px-6 sm:px-8 py-5 text-lg font-bold transition cursor-pointer" style="color: var(--text-primary);">
         🏃‍♀️ 匀速跑训练（LSD & 节奏跑）
       </summary>
 
@@ -579,7 +255,7 @@
 
     <!-- 📋 详细课表 - 比赛成绩预测 -->
     <details class="glass-card rounded-3xl overflow-hidden">
-      <summary class="px-6 sm:px-8 py-5 text-lg font-bold transition cursor-pointer" style="color: var(--text-primary);" onmouseover="this.style.background='var(--bg-card-hover)';" onmouseout="this.style.background='';">
+      <summary class="interactive-summary px-6 sm:px-8 py-5 text-lg font-bold transition cursor-pointer" style="color: var(--text-primary);">
         🏆 比赛成绩预测
       </summary>
 
@@ -605,7 +281,7 @@
 
     <!-- 科学原理 + 免责声明（折叠） -->
     <details class="glass-card rounded-3xl overflow-hidden">
-      <summary class="px-6 sm:px-8 py-5 text-lg font-bold transition cursor-pointer" style="color: var(--text-primary);" onmouseover="this.style.background='var(--bg-card-hover)';" onmouseout="this.style.background='';">
+      <summary class="interactive-summary px-6 sm:px-8 py-5 text-lg font-bold transition cursor-pointer" style="color: var(--text-primary);">
         📖 科学原理与免责声明
       </summary>
       <div class="px-6 sm:px-8 pb-8 text-sm leading-relaxed space-y-4" style="color: var(--text-secondary);">
@@ -621,7 +297,7 @@
       <p class="text-sm" style="color: var(--text-secondary);">
         <strong style="color: var(--text-primary);">设计与开发：</strong>Charles Peng
         ·
-        <a href="mailto:pengpcy@qq.com" class="transition" style="color: var(--sport-green);" onmouseover="this.style.color='var(--sport-cyan)';" onmouseout="this.style.color='var(--sport-green)';">pengpcy@qq.com</a>
+        <a href="mailto:pengpcy@qq.com" class="interactive-link transition" style="color: var(--sport-green);">pengpcy@qq.com</a>
       </p>
     </footer>
 

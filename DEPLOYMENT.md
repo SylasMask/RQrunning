@@ -64,7 +64,7 @@
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: geolocation=(), microphone=(), camera=()
-  Content-Security-Policy: default-src 'self' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com
+  Content-Security-Policy: default-src 'self'; script-src 'self' https://cdn.tailwindcss.com 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'
 ```
 
 ## 测试清单
@@ -77,6 +77,8 @@
 - [ ] 详细课表（4个折叠模块）正常显示
 - [ ] 移动端响应式显示正常（表格卡片式布局）
 - [ ] URL 分享参数正常（带参数刷新页面能恢复状态）
+- [ ] 复制分享链接功能正常
+- [ ] 本地参数保存功能正常
 - [ ] favicon 和 OG 图片正常显示
 - [ ] 输入验证正常（心率冲突自动调整，配速范围检查）
 - [ ] 重置按钮确认提示正常
@@ -85,7 +87,7 @@
 
 - [ ] 启用 Cloudflare 自动最小化（HTML/CSS/JS）
 - [ ] 启用 Brotli 压缩
-- [ ] 配置缓存策略（静态资源长缓存）
+- [ ] 配置缓存策略（`assets/` 静态资源长缓存）
 - [ ] 考虑使用 Cloudflare CDN 加速
 - [ ] 添加 Service Worker 支持离线访问
 
@@ -111,7 +113,7 @@
 
 ## 项目特点
 
-- ✅ 零依赖（除 Tailwind CDN）
+- ✅ 零构建步骤（运行时使用 Tailwind CDN 与 Google Fonts）
 - ✅ 纯静态页面
 - ✅ 响应式设计（移动端优化）
 - ✅ 输入验证和边界检查
