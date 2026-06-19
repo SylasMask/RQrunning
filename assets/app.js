@@ -105,6 +105,10 @@ const PACE_OFFSETS = {
   'I': -20
 };
 
+const ZONE_CODES = HR_ZONES.map(zone => zone.code);
+const MIN_VALID_PACE_SECONDS = 120;
+const MAX_VALID_PACE_SECONDS = 600;
+
 // =============================================================================
 // 工具函数（复用）
 // =============================================================================
@@ -117,6 +121,17 @@ function parsePace(text) {
   const seconds = Number(match[2]);
   if (seconds > 59) return null;
   return minutes * 60 + seconds;
+}
+
+function isValidPaceSeconds(seconds) {
+  return Number.isInteger(seconds) &&
+    seconds >= MIN_VALID_PACE_SECONDS &&
+    seconds <= MAX_VALID_PACE_SECONDS;
+}
+
+function getValidatedPaceSeconds(text) {
+  const seconds = parsePace(text);
+  return isValidPaceSeconds(seconds) ? seconds : null;
 }
 
 function formatPace(seconds) {
@@ -189,45 +204,84 @@ function getRQDescription(rqStr) {
   return '糖原供能为主';
 }
 
+function isValidZoneCode(zoneCode) {
+  return ZONE_CODES.includes(zoneCode);
+}
+
+function getSelectedZone() {
+  return state.zones.find(zone => zone.code === state.selectedZone);
+}
+
 // =============================================================================
-// 核心逻辑 - 重计算与渲染
+// 核心逻辑 - 状态同步与分区渲染
 // =============================================================================
 
-function recompute() {
-  // 1. 验证边界
+function normalizeHeartRateBounds() {
   if (state.maxHR <= state.restHR) {
     state.maxHR = state.restHR + 10;
     document.getElementById('maxHR').value = state.maxHR;
   }
+}
 
-  // 2. 计算心率区间
-  state.zones = calculateHRZones(state.restHR, state.maxHR);
-
-  // 3. 解析配速
-  const pbSeconds = parsePace(state.pbPace);
-  if (pbSeconds) {
+function updatePaceSecondsFromState() {
+  const pbSeconds = getValidatedPaceSeconds(state.pbPace);
+  if (pbSeconds !== null) {
     state.pbPaceSeconds = pbSeconds;
   }
+}
 
-  // 4. 更新控件显示值
+function renderControlValues() {
   document.getElementById('maxHRValue').innerHTML = `${state.maxHR} <small>bpm</small>`;
   document.getElementById('restHRValue').innerHTML = `${state.restHR} <small>bpm</small>`;
   document.getElementById('reserveValue').innerHTML =
     `储备 ${state.maxHR - state.restHR} <small>bpm</small>`;
+}
 
-  // 5. 渲染三大模块
+function persistState() {
+  updateURL();
+  saveToLocalStorage();
+}
+
+function renderHeartRateSection() {
+  normalizeHeartRateBounds();
+  state.zones = calculateHRZones(state.restHR, state.maxHR);
+  renderControlValues();
   renderZoneBar();
+  renderZoneScale();
+  renderSelectedZoneDetail();
   renderRQPanel();
-  renderPacePanel();
+}
 
-  // 6. 渲染详细课表
+function renderPaceSection() {
+  renderPacePanel();
   renderShortIntervalTable();
   renderLongIntervalTable();
   renderSteadyTable();
+}
 
-  // 7. 同步分享 URL 与本地设置
-  updateURL();
-  saveToLocalStorage();
+function renderSelectedZoneSection() {
+  updateZoneSelectionUI();
+  updatePaceSelectionUI();
+  renderSelectedZoneDetail();
+  renderRQPanel();
+  renderPaceHero();
+}
+
+function renderAll() {
+  updatePaceSecondsFromState();
+  renderHeartRateSection();
+  renderPaceSection();
+  persistState();
+}
+
+function setSelectedZone(zoneCode) {
+  if (!isValidZoneCode(zoneCode) || zoneCode === state.selectedZone) {
+    return;
+  }
+
+  state.selectedZone = zoneCode;
+  renderSelectedZoneSection();
+  persistState();
 }
 
 // =============================================================================
@@ -252,35 +306,32 @@ function renderZoneBar() {
     const isActive = zone.code === state.selectedZone;
 
     return `
-      <div class="zone-segment ${isActive ? 'active' : ''}"
-           data-zone="${zone.code}"
-           style="flex: 0 0 ${widthPercent}%"
-           role="tab"
-           aria-selected="${isActive}"
-           aria-label="${zone.code}区 ${zone.name} ${zone.hrRange} bpm">
+      <button type="button"
+              class="zone-segment ${isActive ? 'active' : ''}"
+              data-zone="${zone.code}"
+              style="flex: 0 0 ${widthPercent}%"
+              role="tab"
+              aria-selected="${isActive}"
+              tabindex="${isActive ? '0' : '-1'}"
+              aria-controls="zoneDetail"
+              aria-label="${zone.code}区 ${zone.name} ${zone.hrRange} bpm">
         <div class="zone-code">${zone.code}</div>
         <div class="zone-bpm">${zone.hrRange}</div>
-      </div>
+      </button>
     `;
   }).join('');
+}
 
-  // 绑定点击事件
-  zoneBar.querySelectorAll('.zone-segment').forEach(seg => {
-    seg.addEventListener('click', () => {
-      state.selectedZone = seg.dataset.zone;
-      recompute();
-    });
-  });
-
-  // 刻度
+function renderZoneScale() {
   const zoneScale = document.getElementById('zoneScale');
   zoneScale.innerHTML = `
     <span>${state.restHR}</span>
     <span>${state.maxHR}</span>
   `;
+}
 
-  // 区间详情
-  const selected = state.zones.find(z => z.code === state.selectedZone);
+function renderSelectedZoneDetail() {
+  const selected = getSelectedZone();
   if (selected) {
     document.getElementById('zoneDetail').innerHTML = `
       <div class="text-lg font-bold mb-2" style="color: var(--sport-green);">${selected.code} 区 - ${selected.name}</div>
@@ -292,12 +343,21 @@ function renderZoneBar() {
   }
 }
 
+function updateZoneSelectionUI() {
+  document.querySelectorAll('.zone-segment').forEach(segment => {
+    const isActive = segment.dataset.zone === state.selectedZone;
+    segment.classList.toggle('active', isActive);
+    segment.setAttribute('aria-selected', String(isActive));
+    segment.tabIndex = isActive ? 0 : -1;
+  });
+}
+
 // =============================================================================
 // 渲染 - RQ 呼吸商指示
 // =============================================================================
 
 function renderRQPanel() {
-  const selected = state.zones.find(z => z.code === state.selectedZone);
+  const selected = getSelectedZone();
   if (!selected) return;
 
   const energy = parseEnergyString(selected.energy);
@@ -340,22 +400,24 @@ function renderRQPanel() {
 // 渲染 - 配速预测
 // =============================================================================
 
-function renderPacePanel() {
-  const selected = state.zones.find(z => z.code === state.selectedZone);
+function renderPaceHero() {
+  const selected = getSelectedZone();
   if (!selected) return;
 
   const suggestedPace = state.pbPaceSeconds + PACE_OFFSETS[selected.code];
   const rangeMin = formatPace(suggestedPace - 5);
   const rangeMax = formatPace(suggestedPace + 5);
 
-  // Hero 区域
   document.getElementById('paceHero').innerHTML = `
     <div class="text-xs uppercase tracking-wider font-semibold mb-3" style="color: var(--sport-green);">${selected.code} 区 - ${selected.name}</div>
     <div class="text-5xl font-bold mb-3" style="color: var(--sport-green);">${formatPace(suggestedPace)}</div>
     <div class="text-base" style="color: var(--text-primary);">建议范围：${rangeMin} ~ ${rangeMax}</div>
   `;
+}
 
-  // 列表
+function renderPacePanel() {
+  renderPaceHero();
+
   const paceList = document.getElementById('paceList');
   paceList.innerHTML = state.zones.map(zone => {
     const pace = state.pbPaceSeconds + PACE_OFFSETS[zone.code];
@@ -372,22 +434,28 @@ function renderPacePanel() {
     };
 
     return `
-      <li class="pace-item ${isActive ? 'active' : ''} flex justify-between items-center px-5 py-4 rounded-xl" data-zone="${zone.code}">
-        <div class="flex items-center gap-3">
-          <span class="w-10 h-10 flex items-center justify-center rounded-lg bg-gradient-to-br ${zoneColors[zone.code]} text-white font-bold text-sm">${zone.code}</span>
-          <span class="font-semibold" style="color: var(--text-primary);">${zone.name}</span>
-        </div>
-        <div class="text-2xl font-bold" style="color: var(--sport-green);">${formatPace(pace)}</div>
+      <li>
+        <button type="button"
+                class="pace-item ${isActive ? 'active' : ''} flex justify-between items-center w-full px-5 py-4 rounded-xl"
+                data-zone="${zone.code}"
+                aria-pressed="${isActive}"
+                aria-label="${zone.code}区 ${zone.name} 建议配速 ${formatPace(pace)}">
+          <span class="flex items-center gap-3">
+            <span class="w-10 h-10 flex items-center justify-center rounded-lg bg-gradient-to-br ${zoneColors[zone.code]} text-white font-bold text-sm">${zone.code}</span>
+            <span class="font-semibold" style="color: var(--text-primary);">${zone.name}</span>
+          </span>
+          <span class="text-2xl font-bold" style="color: var(--sport-green);">${formatPace(pace)}</span>
+        </button>
       </li>
     `;
   }).join('');
+}
 
-  // 绑定点击事件
-  paceList.querySelectorAll('.pace-item').forEach(item => {
-    item.addEventListener('click', () => {
-      state.selectedZone = item.dataset.zone;
-      recompute();
-    });
+function updatePaceSelectionUI() {
+  document.querySelectorAll('.pace-item').forEach(item => {
+    const isActive = item.dataset.zone === state.selectedZone;
+    item.classList.toggle('active', isActive);
+    item.setAttribute('aria-pressed', String(isActive));
   });
 }
 
@@ -510,11 +578,11 @@ function loadFromLocalStorage() {
       state.restHR = saved.restHR;
       document.getElementById('restHR').value = saved.restHR;
     }
-    if (parsePace(saved.pbPace)) {
+    if (getValidatedPaceSeconds(saved.pbPace) !== null) {
       state.pbPace = saved.pbPace;
       document.getElementById('pbPace').value = saved.pbPace;
     }
-    if (['D', 'E', 'M', 'T', 'A', 'I'].includes(saved.selectedZone)) {
+    if (isValidZoneCode(saved.selectedZone)) {
       state.selectedZone = saved.selectedZone;
     }
   } catch (error) {
@@ -566,14 +634,14 @@ function loadFromURL() {
   }
   if (params.has('pbPace')) {
     const pace = params.get('pbPace');
-    if (parsePace(pace)) {
+    if (getValidatedPaceSeconds(pace) !== null) {
       state.pbPace = pace;
       document.getElementById('pbPace').value = pace;
     }
   }
   if (params.has('zone')) {
     const zone = params.get('zone');
-    if (['D', 'E', 'M', 'T', 'A', 'I'].includes(zone)) {
+    if (isValidZoneCode(zone)) {
       state.selectedZone = zone;
     }
   }
@@ -583,12 +651,36 @@ function loadFromURL() {
 // 事件绑定
 // =============================================================================
 
+function handleZoneKeydown(event) {
+  const currentIndex = ZONE_CODES.indexOf(state.selectedZone);
+  let nextIndex = currentIndex;
+
+  if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+    nextIndex = (currentIndex - 1 + ZONE_CODES.length) % ZONE_CODES.length;
+  } else if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+    nextIndex = (currentIndex + 1) % ZONE_CODES.length;
+  } else if (event.key === 'Home') {
+    nextIndex = 0;
+  } else if (event.key === 'End') {
+    nextIndex = ZONE_CODES.length - 1;
+  } else {
+    return;
+  }
+
+  event.preventDefault();
+  const nextZone = ZONE_CODES[nextIndex];
+  setSelectedZone(nextZone);
+  document.querySelector(`.zone-segment[data-zone="${nextZone}"]`)?.focus();
+}
+
 function initControls() {
   const maxHRSlider = document.getElementById('maxHR');
   const restHRSlider = document.getElementById('restHR');
   const pbPaceInput = document.getElementById('pbPace');
   const resetBtn = document.getElementById('resetBtn');
   const shareBtn = document.getElementById('shareBtn');
+  const zoneBar = document.getElementById('zoneBar');
+  const paceList = document.getElementById('paceList');
 
   // 最大心率（添加验证）
   maxHRSlider.addEventListener('input', (e) => {
@@ -600,7 +692,8 @@ function initControls() {
       document.getElementById('restHR').value = state.restHR;
     }
     state.maxHR = newMaxHR;
-    recompute();
+    renderHeartRateSection();
+    persistState();
   });
 
   // 静息心率（添加验证）
@@ -613,7 +706,8 @@ function initControls() {
       document.getElementById('maxHR').value = state.maxHR;
     }
     state.restHR = newRestHR;
-    recompute();
+    renderHeartRateSection();
+    persistState();
   });
 
   // 配速输入
@@ -635,19 +729,20 @@ function initControls() {
       return;
     }
 
-    // 添加合理性检查（2:00 - 10:00 之间）
-    if (pbSeconds && (pbSeconds < 120 || pbSeconds > 600)) {
+    if (pbSeconds !== null && !isValidPaceSeconds(pbSeconds)) {
       hint.textContent = '配速应在 2:00 - 10:00 之间，请检查输入';
       hint.style.color = '#ff6b35';
       return;
     }
 
-    if (pbSeconds) {
+    if (isValidPaceSeconds(pbSeconds)) {
       state.pbPace = formatPace(pbSeconds);
+      state.pbPaceSeconds = pbSeconds;
       e.target.value = state.pbPace;
       hint.textContent = '格式 mm:ss，作为各区间配速推算的基准。';
       hint.style.color = '';
-      recompute();
+      renderPaceSection();
+      persistState();
     }
   });
 
@@ -672,11 +767,27 @@ function initControls() {
     document.getElementById('restHR').value = 50;
     document.getElementById('pbPace').value = '03:50';
 
-    recompute();
+    renderAll();
   });
 
   shareBtn.addEventListener('click', () => {
     copyShareLink(shareBtn);
+  });
+
+  zoneBar.addEventListener('click', (event) => {
+    const zoneButton = event.target.closest('.zone-segment');
+    if (zoneButton) {
+      setSelectedZone(zoneButton.dataset.zone);
+    }
+  });
+
+  zoneBar.addEventListener('keydown', handleZoneKeydown);
+
+  paceList.addEventListener('click', (event) => {
+    const paceButton = event.target.closest('.pace-item');
+    if (paceButton) {
+      setSelectedZone(paceButton.dataset.zone);
+    }
   });
 }
 
@@ -688,5 +799,5 @@ document.addEventListener('DOMContentLoaded', () => {
   loadFromLocalStorage();
   loadFromURL();
   initControls();
-  recompute();
+  renderAll();
 });

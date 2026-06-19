@@ -37,8 +37,8 @@ rqrunning/
 
 ## 技术栈
 
-- 纯静态页面（HTML + Tailwind CSS + JavaScript）
-- 零构建步骤，运行时使用 Tailwind CDN 与 Google Fonts
+- 纯静态页面（HTML + 本地 CSS + JavaScript）
+- 零构建步骤，本地样式覆盖页面所需工具类，运行时不依赖 Tailwind CDN
 - 响应式设计
 - 支持 URL 分享与本地参数保存
 
