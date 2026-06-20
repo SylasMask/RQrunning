@@ -1,0 +1,52 @@
+{
+  "name": "呼吸节奏 RQrunning",
+  "short_name": "RQrunning",
+  "description": "跑步训练强度交互仪表盘，联动心率区间、呼吸商 RQ 与配速预测。",
+  "lang": "zh-CN",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#1a1a1a",
+  "theme_color": "#00ff88",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "./favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "./apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "乳酸阈值配速",
+      "short_name": "阈值配速",
+      "description": "打开默认 T 区配速预测。",
+      "url": "./index.html?zone=T"
+    },
+    {
+      "name": "有氧耐力区间",
+      "short_name": "有氧区间",
+      "description": "打开 E 区心率与 RQ 指示。",
+      "url": "./index.html?zone=E"
+    }
+  ]
+}

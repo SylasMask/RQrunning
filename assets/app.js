@@ -9,10 +9,13 @@ const state = {
   pbPace: '03:50',
   selectedZone: 'T',  // 默认选中 T 区（乳酸阈值）
   zones: [],
-  pbPaceSeconds: 230
+  pbPaceSeconds: 230,
+  paceHistory: []
 };
 
 const STORAGE_KEY = 'rqrunning-settings';
+const PACE_HISTORY_KEY = 'rqrunning-pace-history';
+const MAX_PACE_HISTORY_ITEMS = 5;
 let urlUpdateFrame = null;
 
 // 训练区间配置（复用原有数据）
@@ -253,6 +256,7 @@ function renderHeartRateSection() {
 }
 
 function renderPaceSection() {
+  renderPaceHistory();
   renderPacePanel();
   renderShortIntervalTable();
   renderLongIntervalTable();
@@ -281,6 +285,14 @@ function setSelectedZone(zoneCode) {
 
   state.selectedZone = zoneCode;
   renderSelectedZoneSection();
+  persistState();
+}
+
+function applyPace(seconds) {
+  state.pbPace = formatPace(seconds);
+  state.pbPaceSeconds = seconds;
+  document.getElementById('pbPace').value = state.pbPace;
+  renderPaceSection();
   persistState();
 }
 
@@ -459,6 +471,28 @@ function updatePaceSelectionUI() {
   });
 }
 
+function renderPaceHistory() {
+  const container = document.getElementById('paceHistory');
+  if (!container) return;
+
+  if (state.paceHistory.length === 0) {
+    container.innerHTML = '';
+    return;
+  }
+
+  container.innerHTML = `
+    <span class="pace-history-label">最近配速</span>
+    ${state.paceHistory.map(pace => `
+      <button type="button"
+              class="pace-history-button"
+              data-pace="${pace}"
+              aria-label="使用最近配速 ${pace}">
+        ${pace}
+      </button>
+    `).join('')}
+  `;
+}
+
 // =============================================================================
 // 渲染 - 详细课表（拆分为短/长间歇）
 // =============================================================================
@@ -562,6 +596,42 @@ function saveToLocalStorage() {
   } catch (error) {
     // 浏览器隐私模式或禁用存储时忽略，不影响计算功能。
   }
+}
+
+function savePaceHistory() {
+  try {
+    localStorage.setItem(PACE_HISTORY_KEY, JSON.stringify(state.paceHistory));
+  } catch (error) {
+    // 浏览器隐私模式或禁用存储时忽略，不影响计算功能。
+  }
+}
+
+function loadPaceHistory() {
+  try {
+    const raw = localStorage.getItem(PACE_HISTORY_KEY);
+    if (!raw) return;
+
+    const saved = JSON.parse(raw);
+    if (!Array.isArray(saved)) return;
+
+    state.paceHistory = saved
+      .filter(pace => getValidatedPaceSeconds(pace) !== null)
+      .slice(0, MAX_PACE_HISTORY_ITEMS);
+  } catch (error) {
+    localStorage.removeItem(PACE_HISTORY_KEY);
+  }
+}
+
+function addPaceToHistory(pace) {
+  if (getValidatedPaceSeconds(pace) === null) return;
+
+  state.paceHistory = [
+    pace,
+    ...state.paceHistory.filter(item => item !== pace)
+  ].slice(0, MAX_PACE_HISTORY_ITEMS);
+
+  savePaceHistory();
+  renderPaceHistory();
 }
 
 function loadFromLocalStorage() {
@@ -681,6 +751,7 @@ function initControls() {
   const shareBtn = document.getElementById('shareBtn');
   const zoneBar = document.getElementById('zoneBar');
   const paceList = document.getElementById('paceList');
+  const paceHistory = document.getElementById('paceHistory');
 
   // 最大心率（添加验证）
   maxHRSlider.addEventListener('input', (e) => {
@@ -736,13 +807,10 @@ function initControls() {
     }
 
     if (isValidPaceSeconds(pbSeconds)) {
-      state.pbPace = formatPace(pbSeconds);
-      state.pbPaceSeconds = pbSeconds;
-      e.target.value = state.pbPace;
       hint.textContent = '格式 mm:ss，作为各区间配速推算的基准。';
       hint.style.color = '';
-      renderPaceSection();
-      persistState();
+      applyPace(pbSeconds);
+      addPaceToHistory(state.pbPace);
     }
   });
 
@@ -789,15 +857,43 @@ function initControls() {
       setSelectedZone(paceButton.dataset.zone);
     }
   });
+
+  paceHistory.addEventListener('click', (event) => {
+    const historyButton = event.target.closest('.pace-history-button');
+    if (!historyButton) return;
+
+    const seconds = getValidatedPaceSeconds(historyButton.dataset.pace);
+    if (seconds === null) return;
+
+    const hint = document.getElementById('pbPaceHint');
+    hint.textContent = '格式 mm:ss，作为各区间配速推算的基准。';
+    hint.style.color = '';
+    applyPace(seconds);
+    addPaceToHistory(state.pbPace);
+  });
 }
 
 // =============================================================================
 // 初始化
 // =============================================================================
 
+function registerServiceWorker() {
+  if (!('serviceWorker' in navigator) || window.location.protocol === 'file:') {
+    return;
+  }
+
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {
+      // 本地预览或受限环境中注册失败时忽略，不影响页面主功能。
+    });
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+  loadPaceHistory();
   loadFromLocalStorage();
   loadFromURL();
   initControls();
   renderAll();
+  registerServiceWorker();
 });

@@ -373,6 +373,43 @@ input[type="range"]::-moz-range-thumb:hover {
   box-shadow: 0 0 0 3px rgba(0, 255, 136, 0.2);
 }
 
+.pace-history {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: thin;
+}
+
+.pace-history-label {
+  flex: 0 0 auto;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.pace-history-button {
+  flex: 0 0 auto;
+  min-width: 4.25rem;
+  padding: 0.4rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-primary);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  transition: border-color 150ms ease, background-color 150ms ease, color 150ms ease;
+}
+
+.pace-history-button:hover,
+.pace-history-button:focus-visible {
+  border-color: var(--sport-green);
+  background: rgba(0, 255, 136, 0.12);
+  color: var(--sport-green);
+}
+
 @keyframes pulse-glow {
   0%, 100% { opacity: 1; box-shadow: 0 0 8px var(--sport-green); }
   50% { opacity: 0.8; box-shadow: 0 0 16px var(--sport-green); }
